@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useMemo } from "react";
 import dynamic from "next/dynamic";
 import Sidebar from "./Sidebar";
 import TabSwitcher from "./TabSwitcher";
@@ -32,8 +32,18 @@ export default function OutfitRoom({
   equippedItems,
   canvasRef,
   focusMode,
+  setFocusMode,
   onCategoryChange,
 }) {
+  const sceneItems = useMemo(() => {
+    if (activeTab === "catalog") {
+      const selectedCatalogItem = initialCatalogItems.find((item) => item.id === activeItem);
+      return selectedCatalogItem ? [{ id: selectedCatalogItem.id, url: selectedCatalogItem.url }] : [];
+    }
+
+    return equippedItems;
+  }, [activeItem, activeTab, equippedItems, initialCatalogItems]);
+
   return (
     <div style={{ display: "flex", height: "100%", width: "100%", position: "relative" }}>
       <TabSwitcher
@@ -44,6 +54,8 @@ export default function OutfitRoom({
         activeItem={activeItem}
         activeColor={activeItem ? colors?.[activeItem] : "#a5b4fc"}
         onPaletteColorChange={(itemId, value) => setColor(itemId, value)}
+        focusMode={focusMode}
+        onFocusModeChange={setFocusMode}
       />
       <Sidebar
         isDark={isDark}
@@ -71,12 +83,16 @@ export default function OutfitRoom({
 
       <main style={{ flex: 1 }}>
         <Scene
-          items={equippedItems}
+          items={sceneItems}
+          initialCatalogItems={initialCatalogItems}
+          activeItem={activeItem}
           colors={colors}
           canvasRef={canvasRef}
           autoRotate={false}
           environment="city"
           focusMode={focusMode}
+          showBaseModel={activeTab === "outfit"}
+          enableFocusMode={activeTab === "outfit"}
         />
       </main>
     </div>

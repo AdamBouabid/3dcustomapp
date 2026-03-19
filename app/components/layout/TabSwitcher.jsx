@@ -57,6 +57,8 @@ export default function TabSwitcher({
   activeItem,
   activeColor,
   onPaletteColorChange,
+  focusMode,
+  onFocusModeChange,
 }) {
   const containerLeft = panelCollapsed ? "24px" : "calc(420px + 20px)";
 
@@ -78,6 +80,7 @@ export default function TabSwitcher({
   const paletteVisible = !panelCollapsed && activeTab === "outfit" && !!activeItem;
   const visiblePaletteOpen = paletteVisible && paletteOpen;
   const hidingNav = visiblePaletteOpen;
+  const showFocusButton = activeTab === "outfit" && !visiblePaletteOpen;
 
   const storeRecentColor = (hex) => {
     if (!hex) return;
@@ -119,6 +122,37 @@ export default function TabSwitcher({
       pointerEvents: "auto",
       transition: "left 180ms ease",
     }}>
+      {showFocusButton && (
+        <>
+          {/* ── Focus Mode ── */}
+          <div style={{ position: "relative" }}
+            onMouseEnter={() => setHoveredId("focus")}
+            onMouseLeave={() => setHoveredId(null)}
+          >
+            <button
+              onClick={() => onFocusModeChange?.(!focusMode)}
+              style={{
+                ...CIRCLE_BASE,
+                border: "2px solid rgba(34,211,238,0.5)",
+                background: focusMode
+                  ? "linear-gradient(135deg, rgba(34,211,238,0.4) 0%, rgba(34,211,238,0.2) 100%)"
+                  : "linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(34,211,238,0.1) 100%)",
+                color: "rgba(255,255,255,0.95)",
+                transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
+                transform: focusMode ? "scale(1.06)" : "scale(1)",
+                boxShadow: focusMode
+                  ? "0 0 24px rgba(34,211,238,0.7), 0 0 12px rgba(34,211,238,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
+                  : "0 2px 10px rgba(0,0,0,0.3)",
+              }}
+            >
+              <Sparkles size={22} strokeWidth={1.75} />
+            </button>
+            {hoveredId === "focus" && <CircleTooltip label={focusMode ? "Exit Focus" : "Focus Mode"} />}
+          </div>
+
+          <div style={{ height: "4px" }} />
+        </>
+      )}
 
       {/* ── Palette trigger ── */}
       {paletteVisible && (
@@ -139,7 +173,7 @@ export default function TabSwitcher({
               transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
               transform: visiblePaletteOpen ? "scale(1.06)" : "scale(1)",
               boxShadow: visiblePaletteOpen
-                ? "0 0 24px rgba(168,85,247,0.5), 0 0 8px rgba(168,85,247,0.3)"
+                ? "0 0 24px rgba(168,85,247,0.7), 0 0 12px rgba(168,85,247,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
                 : "0 2px 10px rgba(0,0,0,0.3)",
             }}
           >

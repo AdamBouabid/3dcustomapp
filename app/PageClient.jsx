@@ -99,6 +99,7 @@ export default function PageClient({ initialCatalogItems }) {
         equippedItems={equippedItems}
         canvasRef={canvasRef}
         focusMode={focusMode}
+        setFocusMode={setFocusMode}
         onCategoryChange={setCategory}
       />
     </div>

@@ -47,48 +47,48 @@ export default function WardrobeCatalogSection({
         <button
           type="button"
           onClick={toggleSelectionMode}
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+          className={`flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1.5 text-[11px] font-medium leading-[1] transition-colors ${
             selectionMode
               ? "wardrobe-gradient-primary text-white"
               : "bg-white/[0.04] text-white/70 hover:text-white/90"
           }`}
         >
-          {selectionMode ? <CheckSquare size={11} /> : <Square size={11} />} Multi-select
+          {selectionMode ? <CheckSquare size={11} /> : <Square size={11} />} <span className="mt-[0.5px]">Multi-select</span>
         </button>
         {selectionMode && (
           <>
             <button
               type="button"
               onClick={selectAllVisible}
-              className="rounded-full bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/70 transition-colors hover:text-white/90"
+              className="flex items-center justify-center rounded-full bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium leading-[1] text-white/70 transition-colors hover:text-white/90"
             >
-              Select all
+              <span className="mt-[0.5px]">Select all</span>
             </button>
             <button
               type="button"
               onClick={clearSelection}
-              className="rounded-full bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/70 transition-colors hover:text-white/90"
+              className="flex items-center justify-center rounded-full bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium leading-[1] text-white/70 transition-colors hover:text-white/90"
             >
-              Clear
+              <span className="mt-[0.5px]">Clear</span>
             </button>
             <button
               type="button"
               onClick={equipSelected}
               disabled={selectedCatalogIds.length === 0}
-              className="wardrobe-gradient-cool rounded-full border border-cyan-100/35 px-2.5 py-1.5 text-[11px] font-medium text-white transition-colors disabled:opacity-40"
+              className="wardrobe-gradient-cool flex items-center justify-center rounded-full border border-cyan-100/35 px-2.5 py-1.5 text-[11px] font-medium leading-[1] text-white transition-colors disabled:opacity-40"
             >
-              Equip selected
+              <span className="mt-[0.5px]">Equip selected</span>
             </button>
             <button
               type="button"
               onClick={unequipSelected}
               disabled={selectedCatalogIds.length === 0}
-              className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/70 transition-colors hover:bg-red-500/16 hover:text-red-200 disabled:opacity-40"
+              className="flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium leading-[1] text-white/70 transition-colors hover:bg-red-500/16 hover:text-red-200 disabled:opacity-40"
             >
-              Remove selected
+              <span className="mt-[0.5px]">Remove selected</span>
             </button>
             <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-white/52">
-              <ListChecks size={11} /> {selectedCatalogIds.length} selected
+              <ListChecks size={11} /> <span className="mt-[0.5px]">{selectedCatalogIds.length} selected</span>
             </span>
           </>
         )}
@@ -101,13 +101,13 @@ export default function WardrobeCatalogSection({
                 key={option.id}
                 type="button"
                 onClick={() => onPreviewBackdropChange?.(option.id)}
-                className={`rounded-full px-2.5 py-1.5 text-[10px] font-medium tracking-[0.04em] transition-colors ${
+                className={`flex items-center justify-center rounded-full px-2.5 py-1.5 text-[10px] font-medium leading-[1] tracking-[0.04em] transition-colors ${
                   isCurrent
                     ? "bg-white/[0.14] text-white"
                     : "bg-white/[0.04] text-white/58 hover:text-white/86"
                 }`}
               >
-                {option.label}
+                <span className="mt-[0.5px]">{option.label}</span>
               </button>
             );
           })}
@@ -144,7 +144,27 @@ export default function WardrobeCatalogSection({
         </div>
       )}
 
-      <div className="catalog-grid mb-4">
+      <div className="relative mb-1">
+        <div className="wardrobe-elevated sticky top-[10px] z-[50] flex items-center gap-1.5 rounded-[1.2rem] p-2.5 overflow-x-auto custom-scrollbar pb-3 pr-10">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => onCategoryChange?.(cat.id)}
+              className={`flex-none rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wide transition-all duration-200 ${
+                activeCategory === cat.id
+                  ? "bg-[#8b5cf6] text-white shadow-[0_0_12px_rgba(139,92,246,0.6)]"
+                  : "bg-white/[0.03] text-white/60 border border-white/10 hover:bg-white/[0.08] hover:text-white/80"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-[60] w-12 rounded-r-[1.2rem] bg-gradient-to-l from-[#111215] to-transparent opacity-80" />
+      </div>
+
+      <div className="catalog-grid">
         {catalogItems.map(({ id, label, url, accent, category, type }, index) => {
           const isActive = activeItem === id;
           const isSelected = selectedCatalogSet.has(id);
@@ -213,23 +233,6 @@ export default function WardrobeCatalogSection({
         {catalogItems.length === 0 && (
           <p className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] py-4 text-center text-[11px] tracking-[0.04em] text-white/48 high-contrast-label">No items match this filter</p>
         )}
-      </div>
-
-      <div className="wardrobe-elevated sticky bottom-0 z-20 mt-auto flex items-center gap-1.5 rounded-[1.2rem] p-2.5 overflow-x-auto custom-scrollbar pb-3 backdrop-blur-md">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            type="button"
-            onClick={() => onCategoryChange?.(cat.id)}
-            className={`flex-none rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wide transition-all duration-200 ${
-              activeCategory === cat.id
-                ? "bg-[#8b5cf6] text-white shadow-[0_0_12px_rgba(139,92,246,0.6)]"
-                : "bg-white/[0.03] text-white/60 border border-white/10 hover:bg-white/[0.08] hover:text-white/80"
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
       </div>
     </section>
   );
