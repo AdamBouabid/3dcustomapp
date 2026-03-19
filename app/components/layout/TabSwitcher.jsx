@@ -1,6 +1,6 @@
 "use client";
 import React, { useMemo, useRef, useState } from "react";
-import { Paintbrush, Library, PanelLeft, PanelLeftClose, Palette, Sparkles } from "lucide-react";
+import { Paintbrush, Library, PanelLeft, PanelLeftClose, Palette, Sparkles, Sun, Moon } from "lucide-react";
 import ColorPicker from "../ui/ColorPicker";
 
 const RECENT_COLORS_KEY = "wardrobe-recent-colors";
@@ -59,6 +59,8 @@ export default function TabSwitcher({
   onPaletteColorChange,
   focusMode,
   onFocusModeChange,
+  scenePreset = "night-studio",
+  onScenePresetChange,
 }) {
   const containerLeft = panelCollapsed ? "24px" : "calc(420px + 20px)";
 
@@ -122,6 +124,54 @@ export default function TabSwitcher({
       pointerEvents: "auto",
       transition: "left 180ms ease",
     }}>
+      {/* ── Scene Preset Toggle (always visible) ── */}
+      <div
+        style={{ position: "relative" }}
+        onMouseEnter={() => setHoveredId("preset")}
+        onMouseLeave={() => setHoveredId(null)}
+      >
+        <button
+          onClick={() =>
+            onScenePresetChange?.(
+              scenePreset === "night-studio" ? "daylight" : "night-studio"
+            )
+          }
+          style={{
+            ...CIRCLE_BASE,
+            border:
+              scenePreset === "daylight"
+                ? "2px solid rgba(255,215,0,0.55)"
+                : "2px solid rgba(148,163,184,0.35)",
+            background:
+              scenePreset === "daylight"
+                ? "linear-gradient(135deg, rgba(255,210,0,0.35) 0%, rgba(255,165,0,0.18) 100%)"
+                : "linear-gradient(135deg, rgba(100,116,139,0.28) 0%, rgba(100,116,139,0.12) 100%)",
+            color: "rgba(255,255,255,0.95)",
+            backdropFilter: "blur(8px)",
+            transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
+            boxShadow:
+              scenePreset === "daylight"
+                ? "0 0 22px rgba(255,200,0,0.55), 0 0 8px rgba(255,165,0,0.3)"
+                : "0 2px 10px rgba(0,0,0,0.3)",
+          }}
+        >
+          {scenePreset === "daylight" ? (
+            <Sun size={22} strokeWidth={1.75} />
+          ) : (
+            <Moon size={20} strokeWidth={1.75} />
+          )}
+        </button>
+        {hoveredId === "preset" && (
+          <CircleTooltip
+            label={
+              scenePreset === "daylight" ? "Switch to Night Studio" : "Switch to Daylight"
+            }
+          />
+        )}
+      </div>
+
+      <div style={{ height: "4px" }} />
+
       {showFocusButton && (
         <>
           {/* ── Focus Mode ── */}

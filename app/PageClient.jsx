@@ -7,6 +7,7 @@ export default function PageClient({ initialCatalogItems }) {
   const { wardrobe, setWardrobe, activeItem, setActiveItem, equip, unequip, colors, setColor } = useWardrobe();
   const [theme, setTheme] = useState("dark");
   const [focusMode, setFocusMode] = useState(false);
+  const [scenePreset, setScenePreset] = useState("night-studio");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("outfit");
   const [search, setSearch] = useState("");
@@ -101,6 +102,8 @@ export default function PageClient({ initialCatalogItems }) {
         focusMode={focusMode}
         setFocusMode={setFocusMode}
         onCategoryChange={setCategory}
+        scenePreset={scenePreset}
+        setScenePreset={setScenePreset}
       />
     </div>
   );

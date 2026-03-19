@@ -2,6 +2,7 @@
 import React, { Suspense, useMemo, useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, OrbitControls, useGLTF, ContactShadows } from "@react-three/drei";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { gsap } from "gsap";
 
@@ -67,7 +68,7 @@ function CameraController({ focusMode, activeItem, itemsData }) {
   return null;
 }
 
-function CycloramaWall() {
+function CycloramaWall({ color = "#111116" }) {
   const { geo, mat } = useMemo(() => {
     const r = 3;          // bend radius
     const halfW = 10;     // half the width (X)
@@ -138,15 +139,25 @@ function CycloramaWall() {
     geometry.setIndex(idxArr);
 
     const material = new THREE.MeshStandardMaterial({
-      color: "#111116",
+      color: color,
       roughness: 1.0,
       metalness: 0.0,
     });
 
     return { geo: geometry, mat: material };
-  }, []);
+  }, [color]);
 
   return <mesh geometry={geo} material={mat} receiveShadow position={[0, -1, 0]} />;
+}
+
+// Circular shadow-catcher disc — renders ONLY the shadow, no fill colour
+function ShadowCatcher({ radius = 2.5 }) {
+  return (
+    <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.99, 0]}>
+      <circleGeometry args={[radius, 64]} />
+      <shadowMaterial transparent opacity={0.45} />
+    </mesh>
+  );
 }
 
 // Subtle animated dust-mote particles
@@ -198,6 +209,16 @@ function ModelScene({ url, color }) {
   const { scene } = useGLTF(url);
   const cloned = useMemo(() => scene.clone(true), [scene]);
 
+  // Enable shadow casting/receiving on every mesh in the loaded model
+  useMemo(() => {
+    cloned.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+  }, [cloned]);
+
   useMemo(() => {
     if (!color) return;
     cloned.traverse((child) => {
@@ -229,8 +250,10 @@ export default function Scene({
   initialCatalogItems = [],
   showBaseModel = true,
   enableFocusMode = true,
+  scenePreset = "night-studio",
 }) {
   const cameraPosition = [0, 1, 2.4];
+  const isDaylight = scenePreset === "daylight";
 
   const renderItems = useMemo(() => {
     if (!showBaseModel) return items;
@@ -238,58 +261,125 @@ export default function Scene({
   }, [baseModelUrl, items, showBaseModel]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        // Daylight: CSS sky gradient visible through transparent canvas
+        // Night: solid dark colour (canvas opaque background covers it anyway)
+        background: isDaylight
+          ? "linear-gradient(180deg, #87CEEB 0%, #C5E8F5 55%, #E0F7FA 100%)"
+          : "#07070f",
+      }}
+    >
       <Canvas
         ref={canvasRef}
-        style={{ display: "block", width: "100%", height: "100%", background: "#07070f" }}
+        gl={{ alpha: true }}
+        style={{ display: "block", width: "100%", height: "100%", background: "transparent" }}
         camera={{ position: cameraPosition, fov: 50 }}
         shadows
       >
+        {/* Night preset: fill the scene with a solid dark colour */}
+        {!isDaylight && <color attach="background" args={["#07070f"]} />}
+
         <CameraController
           focusMode={enableFocusMode ? focusMode : false}
           activeItem={activeItem}
           itemsData={initialCatalogItems}
         />
-        <fog attach="fog" args={["#07070f", 6, 18]} />
 
-        {/* ── Ambient & key light ── */}
-        <ambientLight intensity={0.35} />
-        <spotLight
-          position={[0, 10, 4]}
-          intensity={2.2}
-          angle={0.45}
-          penumbra={1}
-          castShadow
-          shadow-bias={-0.0001}
-        />
+        <fog attach="fog" args={isDaylight ? ["#C5E8F5", 8, 22] : ["#07070f", 6, 18]} />
 
-        {/* ── Soft fill lights ── */}
-        <directionalLight position={[3, 4, 3]}  intensity={1.2} color="#7c8fff" />
-        <directionalLight position={[-3, 4, 3]} intensity={1.2} color="#9b77ff" />
+        {isDaylight ? (
+          /* ── Daylight Studio lighting ── */
+          <>
+            {/* Broad ambient simulates bounced sky light */}
+            <ambientLight intensity={0.9} />
 
-        {/* ── Purple rim light — hits back of model to separate it from the dark cyc ── */}
-        <directionalLight position={[0, 3, -6]} intensity={2.8} color="#9333ea" />
-        <pointLight        position={[0, 2, -4]} intensity={1.4} color="#a855f7" distance={8} />
+            {/* 45° sun — warm white, soft shadow map */}
+            <directionalLight
+              position={[5, 8, 5]}
+              intensity={4.2}
+              color="#FFF5E0"
+              castShadow
+              shadow-bias={-0.0008}
+              shadow-mapSize-width={2048}
+              shadow-mapSize-height={2048}
+              shadow-camera-near={0.5}
+              shadow-camera-far={25}
+              shadow-camera-left={-4}
+              shadow-camera-right={4}
+              shadow-camera-top={7}
+              shadow-camera-bottom={-3}
+            />
+            {/* Sky fill — cool blue from the opposite side */}
+            <directionalLight position={[-3, 5, 2]} intensity={1.6} color="#87CEEB" />
+            {/* Soft top fill to kill harsh shadow gaps */}
+            <pointLight position={[0, 6, 3]} intensity={1.0} color="#FFFDE7" />
+          </>
+        ) : (
+          /* ── Night Studio lighting ── */
+          <>
+            <ambientLight intensity={0.35} />
+            <spotLight
+              position={[0, 10, 4]}
+              intensity={2.2}
+              angle={0.45}
+              penumbra={1}
+              castShadow
+              shadow-bias={-0.0001}
+            />
+            <directionalLight position={[3, 4, 3]}  intensity={1.2} color="#7c8fff" />
+            <directionalLight position={[-3, 4, 3]} intensity={1.2} color="#9b77ff" />
+            <directionalLight position={[0, 3, -6]} intensity={2.8} color="#9333ea" />
+            <pointLight        position={[0, 2, -4]} intensity={1.4} color="#a855f7" distance={8} />
+          </>
+        )}
 
         <Suspense fallback={null}>
-          <Environment preset={environment} background={false} />
-          <CycloramaWall />
-          <ContactShadows
-            position={[0, -1, 0]}
-            opacity={0.45}
-            scale={10}
-            blur={2.2}
-            far={4.5}
-            resolution={256}
-            color="#000000"
-          />
-          <DustParticles count={90} />
+          {/* Sunny HDRI for daylight, city HDRI for night */}
+          <Environment preset={isDaylight ? "park" : environment} background={false} />
+
+          {/* Cyclorama: off-white for daylight, near-black for night */}
+          <CycloramaWall color={isDaylight ? "#f0efe9" : "#111116"} />
+
+          {isDaylight ? (
+            /* Circular shadow-catcher keeps ground connection without a big floor mesh */
+            <ShadowCatcher />
+          ) : (
+            <>
+              <ContactShadows
+                position={[0, -1, 0]}
+                opacity={0.45}
+                scale={10}
+                blur={2.2}
+                far={4.5}
+                resolution={256}
+                color="#000000"
+              />
+              <DustParticles count={90} />
+            </>
+          )}
+
           <group position={[0, -0.9, 0]}>
             {renderItems.map(({ id, url }) => (
               <ModelScene key={id} url={url} color={colors[id]} />
             ))}
           </group>
         </Suspense>
+
+        {/* Bloom — low threshold makes bright white garments glow softly */}
+        {isDaylight && (
+          <EffectComposer>
+            <Bloom
+              luminanceThreshold={0.65}
+              luminanceSmoothing={0.9}
+              intensity={0.35}
+              mipmapBlur
+            />
+          </EffectComposer>
+        )}
 
         <OrbitControls
           makeDefault
@@ -304,17 +394,19 @@ export default function Scene({
         />
       </Canvas>
 
-      {/* ── CSS Vignette overlay — darkens edges, focuses eye on the model ── */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(ellipse at 50% 48%, transparent 32%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.85) 100%)",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      />
+      {/* CSS Vignette — night mode only */}
+      {!isDaylight && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(ellipse at 50% 48%, transparent 32%, rgba(0,0,0,0.55) 72%, rgba(0,0,0,0.85) 100%)",
+            pointerEvents: "none",
+            zIndex: 1,
+          }}
+        />
+      )}
     </div>
   );
 }

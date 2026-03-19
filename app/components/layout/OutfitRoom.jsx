@@ -34,6 +34,8 @@ export default function OutfitRoom({
   focusMode,
   setFocusMode,
   onCategoryChange,
+  scenePreset,
+  setScenePreset,
 }) {
   const sceneItems = useMemo(() => {
     if (activeTab === "catalog") {
@@ -56,6 +58,8 @@ export default function OutfitRoom({
         onPaletteColorChange={(itemId, value) => setColor(itemId, value)}
         focusMode={focusMode}
         onFocusModeChange={setFocusMode}
+        scenePreset={scenePreset}
+        onScenePresetChange={setScenePreset}
       />
       <Sidebar
         isDark={isDark}
@@ -93,6 +97,7 @@ export default function OutfitRoom({
           focusMode={focusMode}
           showBaseModel={activeTab === "outfit"}
           enableFocusMode={activeTab === "outfit"}
+          scenePreset={scenePreset}
         />
       </main>
     </div>
