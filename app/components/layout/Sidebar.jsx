@@ -26,7 +26,18 @@ export default function Sidebar({
   onCategoryChange,
 }) {
   return (
-    <aside style={{ flex: panelCollapsed ? "0 0 0" : "0 0 420px", width: panelCollapsed ? 0 : "420px", overflow: "hidden", transition: "width 180ms ease, flex 180ms ease", padding: panelCollapsed ? 0 : "16px 12px", margin: 0 }}>
+    <aside style={{
+      position: "absolute",
+      top: 0,
+      left: 0,
+      height: "100%",
+      width: "420px",
+      zIndex: 20,
+      transform: panelCollapsed ? "translateX(-100%)" : "translateX(0)",
+      transition: "transform 220ms cubic-bezier(0.4,0,0.2,1)",
+      padding: panelCollapsed ? 0 : "16px 12px",
+      pointerEvents: panelCollapsed ? "none" : "auto",
+    }}>
       <WardrobePanel
         isDark={isDark}
         items={items}

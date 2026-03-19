@@ -269,13 +269,19 @@ export default function Scene({
         // Daylight: CSS sky gradient visible through transparent canvas
         // Night: solid dark colour (canvas opaque background covers it anyway)
         background: isDaylight
-          ? "linear-gradient(180deg, #87CEEB 0%, #C5E8F5 55%, #E0F7FA 100%)"
+          ? "linear-gradient(180deg, #62a8c8 0%, #82c0d6 55%, #a8dce8 100%)"
           : "#07070f",
       }}
     >
       <Canvas
         ref={canvasRef}
-        gl={{ alpha: true }}
+        gl={{
+          alpha: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          // exposure < 1 pulls the overall brightness down while preserving
+          // highlight detail — the proper cure for a blown-out daylight scene
+          toneMappingExposure: isDaylight ? 0.53 : 1.0,
+        }}
         style={{ display: "block", width: "100%", height: "100%", background: "transparent" }}
         camera={{ position: cameraPosition, fov: 50 }}
         shadows
@@ -295,12 +301,12 @@ export default function Scene({
           /* ── Daylight Studio lighting ── */
           <>
             {/* Broad ambient simulates bounced sky light */}
-            <ambientLight intensity={0.9} />
+            <ambientLight intensity={0.47} />
 
             {/* 45° sun — warm white, soft shadow map */}
             <directionalLight
               position={[5, 8, 5]}
-              intensity={4.2}
+              intensity={1.6}
               color="#FFF5E0"
               castShadow
               shadow-bias={-0.0008}
@@ -313,10 +319,8 @@ export default function Scene({
               shadow-camera-top={7}
               shadow-camera-bottom={-3}
             />
-            {/* Sky fill — cool blue from the opposite side */}
-            <directionalLight position={[-3, 5, 2]} intensity={1.6} color="#87CEEB" />
-            {/* Soft top fill to kill harsh shadow gaps */}
-            <pointLight position={[0, 6, 3]} intensity={1.0} color="#FFFDE7" />
+            {/* Sky fill — subtle only */}
+            <directionalLight position={[-3, 5, 2]} intensity={0.3} color="#87CEEB" />
           </>
         ) : (
           /* ── Night Studio lighting ── */
@@ -338,11 +342,11 @@ export default function Scene({
         )}
 
         <Suspense fallback={null}>
-          {/* Sunny HDRI for daylight, city HDRI for night */}
-          <Environment preset={isDaylight ? "park" : environment} background={false} />
+          {/* Sunny HDRI for daylight — env intensity kept low to avoid overexposure */}
+          <Environment preset={isDaylight ? "park" : environment} background={false} environmentIntensity={isDaylight ? 0.7 : 1.0} />
 
-          {/* Cyclorama: off-white for daylight, near-black for night */}
-          <CycloramaWall color={isDaylight ? "#f0efe9" : "#111116"} />
+          {/* Cyclorama: warm light grey for daylight, near-black for night */}
+          <CycloramaWall color={isDaylight ? "#b8c4cc" : "#111116"} />
 
           {isDaylight ? (
             /* Circular shadow-catcher keeps ground connection without a big floor mesh */
@@ -369,13 +373,13 @@ export default function Scene({
           </group>
         </Suspense>
 
-        {/* Bloom — low threshold makes bright white garments glow softly */}
-        {isDaylight && (
+        {/* Bloom — disabled to avoid additional brightness */}
+        {false && isDaylight && (
           <EffectComposer>
             <Bloom
-              luminanceThreshold={0.65}
-              luminanceSmoothing={0.9}
-              intensity={0.35}
+              luminanceThreshold={0.55}
+              luminanceSmoothing={0.85}
+              intensity={0.4}
               mipmapBlur
             />
           </EffectComposer>

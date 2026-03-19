@@ -47,7 +47,7 @@ export default function OutfitRoom({
   }, [activeItem, activeTab, equippedItems, initialCatalogItems]);
 
   return (
-    <div style={{ display: "flex", height: "100%", width: "100%", position: "relative" }}>
+    <div style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
       <TabSwitcher
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -85,7 +85,8 @@ export default function OutfitRoom({
         onCategoryChange={onCategoryChange}
       />
 
-      <main style={{ flex: 1 }}>
+      {/* Scene fills the entire container — sidebar floats on top */}
+      <div style={{ position: "absolute", inset: 0 }}>
         <Scene
           items={sceneItems}
           initialCatalogItems={initialCatalogItems}
@@ -99,7 +100,7 @@ export default function OutfitRoom({
           enableFocusMode={activeTab === "outfit"}
           scenePreset={scenePreset}
         />
-      </main>
+      </div>
     </div>
   );
 }

@@ -24,7 +24,7 @@ const CIRCLE_BASE = {
   cursor: "pointer",
 };
 
-function CircleTooltip({ label }) {
+function CircleTooltip({ label, light }) {
   return (
     <div style={{
       position: "absolute",
@@ -34,13 +34,13 @@ function CircleTooltip({ label }) {
       whiteSpace: "nowrap",
       fontSize: "11px",
       fontWeight: 600,
-      color: "#e2e8f0",
+      color: light ? "#0f172a" : "#e2e8f0",
       padding: "3px 9px",
       borderRadius: "8px",
-      background: "rgba(8,8,14,0.88)",
-      backdropFilter: "blur(8px)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      boxShadow: "0 4px 14px rgba(0,0,0,0.45)",
+      background: light ? "rgba(255,255,255,0.93)" : "rgba(8,8,14,0.88)",
+      backdropFilter: "blur(10px)",
+      border: light ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.08)",
+      boxShadow: light ? "0 4px 14px rgba(0,0,0,0.12)" : "0 4px 14px rgba(0,0,0,0.45)",
       pointerEvents: "none",
       zIndex: 100,
     }}>
@@ -63,6 +63,7 @@ export default function TabSwitcher({
   onScenePresetChange,
 }) {
   const containerLeft = panelCollapsed ? "24px" : "calc(420px + 20px)";
+  const isDaylight = scenePreset === "daylight";
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -163,6 +164,7 @@ export default function TabSwitcher({
         </button>
         {hoveredId === "preset" && (
           <CircleTooltip
+            light={isDaylight}
             label={
               scenePreset === "daylight" ? "Switch to Night Studio" : "Switch to Daylight"
             }
@@ -183,21 +185,29 @@ export default function TabSwitcher({
               onClick={() => onFocusModeChange?.(!focusMode)}
               style={{
                 ...CIRCLE_BASE,
-                border: "2px solid rgba(34,211,238,0.5)",
-                background: focusMode
-                  ? "linear-gradient(135deg, rgba(34,211,238,0.4) 0%, rgba(34,211,238,0.2) 100%)"
-                  : "linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(34,211,238,0.1) 100%)",
-                color: "rgba(255,255,255,0.95)",
+                border: isDaylight
+                  ? (focusMode ? "2px solid rgba(14,165,233,0.8)" : "2px solid rgba(14,165,233,0.4)")
+                  : "2px solid rgba(34,211,238,0.5)",
+                background: isDaylight
+                  ? focusMode
+                    ? "linear-gradient(135deg, rgba(14,165,233,0.22) 0%, rgba(14,165,233,0.1) 100%)"
+                    : "rgba(255,255,255,0.72)"
+                  : focusMode
+                    ? "linear-gradient(135deg, rgba(34,211,238,0.4) 0%, rgba(34,211,238,0.2) 100%)"
+                    : "linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(34,211,238,0.1) 100%)",
+                color: isDaylight ? "#0c4a6e" : "rgba(255,255,255,0.95)",
                 transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
                 transform: focusMode ? "scale(1.06)" : "scale(1)",
-                boxShadow: focusMode
-                  ? "0 0 24px rgba(34,211,238,0.7), 0 0 12px rgba(34,211,238,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
-                  : "0 2px 10px rgba(0,0,0,0.3)",
+                boxShadow: isDaylight
+                  ? focusMode ? "0 0 18px rgba(14,165,233,0.3)" : "0 2px 8px rgba(0,0,0,0.1)"
+                  : focusMode
+                    ? "0 0 24px rgba(34,211,238,0.7), 0 0 12px rgba(34,211,238,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
+                    : "0 2px 10px rgba(0,0,0,0.3)",
               }}
             >
               <Sparkles size={22} strokeWidth={1.75} />
             </button>
-            {hoveredId === "focus" && <CircleTooltip label={focusMode ? "Exit Focus" : "Focus Mode"} />}
+            {hoveredId === "focus" && <CircleTooltip light={isDaylight} label={focusMode ? "Exit Focus" : "Focus Mode"} />}
           </div>
 
           <div style={{ height: "4px" }} />
@@ -215,21 +225,29 @@ export default function TabSwitcher({
             onClick={() => setPaletteOpen((v) => !v)}
             style={{
               ...CIRCLE_BASE,
-              border: "2px solid rgba(168,85,247,0.5)",
-              background: visiblePaletteOpen
-                ? "linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(168,85,247,0.2) 100%)"
-                : "linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(168,85,247,0.1) 100%)",
-              color: "rgba(255,255,255,0.95)",
+              border: isDaylight
+                ? (visiblePaletteOpen ? "2px solid rgba(124,58,237,0.7)" : "2px solid rgba(124,58,237,0.35)")
+                : "2px solid rgba(168,85,247,0.5)",
+              background: isDaylight
+                ? visiblePaletteOpen
+                  ? "linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(124,58,237,0.07) 100%)"
+                  : "rgba(255,255,255,0.72)"
+                : visiblePaletteOpen
+                  ? "linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(168,85,247,0.2) 100%)"
+                  : "linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(168,85,247,0.1) 100%)",
+              color: isDaylight ? "#3b0764" : "rgba(255,255,255,0.95)",
               transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
               transform: visiblePaletteOpen ? "scale(1.06)" : "scale(1)",
-              boxShadow: visiblePaletteOpen
-                ? "0 0 24px rgba(168,85,247,0.7), 0 0 12px rgba(168,85,247,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
-                : "0 2px 10px rgba(0,0,0,0.3)",
+              boxShadow: isDaylight
+                ? visiblePaletteOpen ? "0 0 18px rgba(124,58,237,0.28)" : "0 2px 8px rgba(0,0,0,0.1)"
+                : visiblePaletteOpen
+                  ? "0 0 24px rgba(168,85,247,0.7), 0 0 12px rgba(168,85,247,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
+                  : "0 2px 10px rgba(0,0,0,0.3)",
             }}
           >
             <Palette size={22} strokeWidth={1.75} />
           </button>
-          {hoveredId === "palette" && !visiblePaletteOpen && <CircleTooltip label="Color Palette" />}
+          {hoveredId === "palette" && !visiblePaletteOpen && <CircleTooltip light={isDaylight} label="Color Palette" />}
 
           {/* ── Swatch stack ── */}
           {visiblePaletteOpen && (
@@ -266,7 +284,7 @@ export default function TabSwitcher({
                         transition: "transform 150ms ease, box-shadow 150ms ease, outline 150ms ease",
                       }}
                     />
-                    {hoveredId === `swatch-${hex}` && <CircleTooltip label={name} />}
+                    {hoveredId === `swatch-${hex}` && <CircleTooltip light={isDaylight} label={name} />}
                   </div>
                 );
               })}
@@ -301,7 +319,7 @@ export default function TabSwitcher({
                     <Sparkles size={18} strokeWidth={1.75} />
                   </button>
                 </div>
-                {hoveredId === "ai" && <CircleTooltip label="Custom Hue" />}
+                {hoveredId === "ai" && <CircleTooltip light={isDaylight} label="Custom Hue" />}
               </div>
             </div>
           )}
@@ -334,19 +352,29 @@ export default function TabSwitcher({
           onClick={() => onTabChange("outfit")}
           style={{
             ...CIRCLE_BASE,
-            border: activeTab === "outfit" ? "2px solid rgb(99,102,241)" : "2px solid rgba(255,255,255,0.1)",
-            background: activeTab === "outfit"
-              ? "linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.12) 100%)"
-              : "rgba(255,255,255,0.04)",
-            color: activeTab === "outfit" ? "#e0e7ff" : "rgba(255,255,255,0.6)",
+            border: isDaylight
+              ? `2px solid ${activeTab === "outfit" ? "rgba(14,165,233,0.8)" : "rgba(0,0,0,0.12)"}`
+              : `2px solid ${activeTab === "outfit" ? "rgb(99,102,241)" : "rgba(255,255,255,0.1)"}`,
+            background: isDaylight
+              ? activeTab === "outfit"
+                ? "linear-gradient(135deg, rgba(14,165,233,0.2) 0%, rgba(14,165,233,0.08) 100%)"
+                : "rgba(255,255,255,0.72)"
+              : activeTab === "outfit"
+                ? "linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.12) 100%)"
+                : "rgba(255,255,255,0.04)",
+            color: isDaylight
+              ? activeTab === "outfit" ? "#0c4a6e" : "rgba(15,23,42,0.6)"
+              : activeTab === "outfit" ? "#e0e7ff" : "rgba(255,255,255,0.6)",
             backdropFilter: "blur(8px)",
-            boxShadow: activeTab === "outfit" ? "0 0 20px rgba(99,102,241,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
+            boxShadow: isDaylight
+              ? activeTab === "outfit" ? "0 0 18px rgba(14,165,233,0.22)" : "0 2px 8px rgba(0,0,0,0.08)"
+              : activeTab === "outfit" ? "0 0 20px rgba(99,102,241,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
             transition: "all 280ms ease",
           }}
         >
           <Paintbrush size={22} strokeWidth={1.75} />
         </button>
-        {hoveredId === "outfit" && <CircleTooltip label="Outfit" />}
+        {hoveredId === "outfit" && <CircleTooltip light={isDaylight} label="Outfit" />}
       </div>
 
       {/* ── Catalog ── */}
@@ -365,19 +393,29 @@ export default function TabSwitcher({
           onClick={() => onTabChange("catalog")}
           style={{
             ...CIRCLE_BASE,
-            border: activeTab === "catalog" ? "2px solid rgb(99,102,241)" : "2px solid rgba(255,255,255,0.1)",
-            background: activeTab === "catalog"
-              ? "linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.12) 100%)"
-              : "rgba(255,255,255,0.04)",
-            color: activeTab === "catalog" ? "#e0e7ff" : "rgba(255,255,255,0.6)",
+            border: isDaylight
+              ? `2px solid ${activeTab === "catalog" ? "rgba(14,165,233,0.8)" : "rgba(0,0,0,0.12)"}`
+              : `2px solid ${activeTab === "catalog" ? "rgb(99,102,241)" : "rgba(255,255,255,0.1)"}`,
+            background: isDaylight
+              ? activeTab === "catalog"
+                ? "linear-gradient(135deg, rgba(14,165,233,0.2) 0%, rgba(14,165,233,0.08) 100%)"
+                : "rgba(255,255,255,0.72)"
+              : activeTab === "catalog"
+                ? "linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.12) 100%)"
+                : "rgba(255,255,255,0.04)",
+            color: isDaylight
+              ? activeTab === "catalog" ? "#0c4a6e" : "rgba(15,23,42,0.6)"
+              : activeTab === "catalog" ? "#e0e7ff" : "rgba(255,255,255,0.6)",
             backdropFilter: "blur(8px)",
-            boxShadow: activeTab === "catalog" ? "0 0 20px rgba(99,102,241,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
+            boxShadow: isDaylight
+              ? activeTab === "catalog" ? "0 0 18px rgba(14,165,233,0.22)" : "0 2px 8px rgba(0,0,0,0.08)"
+              : activeTab === "catalog" ? "0 0 20px rgba(99,102,241,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
             transition: "all 280ms ease",
           }}
         >
           <Library size={22} strokeWidth={1.75} />
         </button>
-        {hoveredId === "catalog" && <CircleTooltip label="Catalog" />}
+        {hoveredId === "catalog" && <CircleTooltip light={isDaylight} label="Catalog" />}
       </div>
 
       <div style={{ height: "8px" }} />
@@ -398,20 +436,26 @@ export default function TabSwitcher({
           onClick={onTogglePanel}
           style={{
             ...CIRCLE_BASE,
-            border: "2px solid rgba(255,255,255,0.2)",
-            background: panelCollapsed
-              ? "linear-gradient(135deg, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.15) 100%)"
-              : "linear-gradient(135deg, rgba(124,136,255,0.2) 0%, rgba(124,136,255,0.1) 100%)",
-            color: "rgba(255,255,255,0.9)",
+            border: isDaylight ? "2px solid rgba(0,0,0,0.12)" : "2px solid rgba(255,255,255,0.2)",
+            background: isDaylight
+              ? panelCollapsed
+                ? "linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.08) 100%)"
+                : "rgba(255,255,255,0.72)"
+              : panelCollapsed
+                ? "linear-gradient(135deg, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.15) 100%)"
+                : "linear-gradient(135deg, rgba(124,136,255,0.2) 0%, rgba(124,136,255,0.1) 100%)",
+            color: isDaylight ? "rgba(15,23,42,0.8)" : "rgba(255,255,255,0.9)",
             backdropFilter: "blur(8px)",
-            boxShadow: panelCollapsed ? "0 0 20px rgba(34,197,94,0.25)" : "0 2px 8px rgba(0,0,0,0.2)",
+            boxShadow: isDaylight
+              ? panelCollapsed ? "0 0 14px rgba(34,197,94,0.2)" : "0 2px 8px rgba(0,0,0,0.08)"
+              : panelCollapsed ? "0 0 20px rgba(34,197,94,0.25)" : "0 2px 8px rgba(0,0,0,0.2)",
             animation: panelCollapsed ? "wardrobe-glow-pulse 1.2s ease-in-out infinite" : "none",
             transition: "all 280ms ease",
           }}
         >
           {panelCollapsed ? <PanelLeft size={22} strokeWidth={1.75} /> : <PanelLeftClose size={22} strokeWidth={1.75} />}
         </button>
-        {hoveredId === "toggle" && <CircleTooltip label={panelCollapsed ? "Show Panel" : "Hide Panel"} />}
+        {hoveredId === "toggle" && <CircleTooltip light={isDaylight} label={panelCollapsed ? "Show Panel" : "Hide Panel"} />}
       </div>
     </div>
   );
