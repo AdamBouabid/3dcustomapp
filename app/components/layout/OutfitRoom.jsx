@@ -32,6 +32,7 @@ export default function OutfitRoom({
   equippedItems,
   canvasRef,
   focusMode,
+  onCategoryChange,
 }) {
   return (
     <div style={{ display: "flex", height: "100%", width: "100%", position: "relative" }}>
@@ -65,6 +66,7 @@ export default function OutfitRoom({
         recentlyImportedOnly={recentlyImportedOnly}
         colorFamily={colorFamily}
         panelCollapsed={panelCollapsed}
+        onCategoryChange={onCategoryChange}
       />
 
       <main style={{ flex: 1 }}>

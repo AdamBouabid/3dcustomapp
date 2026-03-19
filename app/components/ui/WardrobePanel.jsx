@@ -133,6 +133,7 @@ function WardrobePanel({
   recentlyImportedOnly = false,
   colorFamily = "all",
   onToggleSelectionMode,
+  onCategoryChange,
 }) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCatalogIds, setSelectedCatalogIds] = useState([]);
@@ -314,6 +315,8 @@ function WardrobePanel({
           toggleCatalogSelection={toggleCatalogSelection}
           previewBackdrop={catalogPreviewBackdrop}
           onPreviewBackdropChange={setCatalogPreviewBackdrop}
+          activeCategory={category}
+          onCategoryChange={onCategoryChange}
         />
       ) : (
         <WardrobeCurrentOutfit

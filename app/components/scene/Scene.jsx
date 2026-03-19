@@ -1,7 +1,7 @@
 ﻿"use client";
 import React, { Suspense, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Environment, OrbitControls, useGLTF, Grid } from "@react-three/drei";
+import { Environment, OrbitControls, useGLTF } from "@react-three/drei";
 
 function ModelScene({ url, color }) {
   const { scene } = useGLTF(url);
@@ -50,7 +50,6 @@ export default function Scene({
     >
       <ambientLight intensity={0.6} />
       <directionalLight position={[2, 3, 1]} intensity={1.2} />
-      <Grid args={[10, 10]} cellSize={0.5} cellColor="#6b7280" sectionSize={2} sectionColor="#1f2937" fadeDistance={30} fadeStrength={1} />
       <Suspense fallback={null}>
         <Environment preset={environment} background={false} />
         {renderItems.map(({ id, url }) => (

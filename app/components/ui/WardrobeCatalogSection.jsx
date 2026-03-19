@@ -22,8 +22,19 @@ export default function WardrobeCatalogSection({
   toggleCatalogSelection,
   previewBackdrop = "studio",
   onPreviewBackdropChange,
+  activeCategory = "all",
+  onCategoryChange,
 }) {
   const [hoveredId, setHoveredId] = useState(null);
+  const categories = [
+    { id: "all", label: "All" },
+    { id: "outfit", label: "Outfits" },
+    { id: "top", label: "Tops" },
+    { id: "bottom", label: "Bottoms" },
+    { id: "dress", label: "Dresses" },
+    { id: "shoes", label: "Shoes" },
+  ];
+
   const backdropOptions = [
     { id: "studio", label: "Studio" },
     { id: "transparent", label: "Clear" },
@@ -133,7 +144,7 @@ export default function WardrobeCatalogSection({
         </div>
       )}
 
-      <div className="catalog-grid">
+      <div className="catalog-grid mb-4">
         {catalogItems.map(({ id, label, url, accent, category, type }, index) => {
           const isActive = activeItem === id;
           const isSelected = selectedCatalogSet.has(id);
@@ -202,6 +213,23 @@ export default function WardrobeCatalogSection({
         {catalogItems.length === 0 && (
           <p className="rounded-[1.2rem] border border-white/8 bg-white/[0.04] py-4 text-center text-[11px] tracking-[0.04em] text-white/48 high-contrast-label">No items match this filter</p>
         )}
+      </div>
+
+      <div className="wardrobe-elevated sticky bottom-0 z-20 mt-auto flex items-center gap-1.5 rounded-[1.2rem] p-2.5 overflow-x-auto custom-scrollbar pb-3 backdrop-blur-md">
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => onCategoryChange?.(cat.id)}
+            className={`flex-none rounded-full px-4 py-1.5 text-[11px] font-bold tracking-wide transition-all duration-200 ${
+              activeCategory === cat.id
+                ? "bg-[#8b5cf6] text-white shadow-[0_0_12px_rgba(139,92,246,0.6)]"
+                : "bg-white/[0.03] text-white/60 border border-white/10 hover:bg-white/[0.08] hover:text-white/80"
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
       </div>
     </section>
   );

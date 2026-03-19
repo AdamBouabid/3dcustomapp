@@ -23,6 +23,7 @@ export default function Sidebar({
   recentlyImportedOnly,
   colorFamily,
   panelCollapsed,
+  onCategoryChange,
 }) {
   return (
     <aside style={{ flex: panelCollapsed ? "0 0 0" : "0 0 420px", width: panelCollapsed ? 0 : "420px", overflow: "hidden", transition: "width 180ms ease, flex 180ms ease", padding: panelCollapsed ? 0 : "16px 12px", margin: 0 }}>
@@ -46,6 +47,7 @@ export default function Sidebar({
         topsOnly={topsOnly}
         recentlyImportedOnly={recentlyImportedOnly}
         colorFamily={colorFamily}
+        onCategoryChange={onCategoryChange}
       />
     </aside>
   );
