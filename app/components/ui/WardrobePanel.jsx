@@ -136,6 +136,7 @@ function WardrobePanel({
 }) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCatalogIds, setSelectedCatalogIds] = useState([]);
+  const [catalogPreviewBackdrop, setCatalogPreviewBackdrop] = useState("studio");
   const favoriteIds = useSyncExternalStore(
     subscribeFavoriteIds,
     getFavoriteIdsSnapshot,
@@ -311,10 +312,8 @@ function WardrobePanel({
           equipSelected={equipSelected}
           unequipSelected={unequipSelected}
           toggleCatalogSelection={toggleCatalogSelection}
-          handleEquip={handleEquip}
-          handleUnequip={handleUnequip}
-          setColor={setColor}
-          toggleFavorite={toggleFavorite}
+          previewBackdrop={catalogPreviewBackdrop}
+          onPreviewBackdropChange={setCatalogPreviewBackdrop}
         />
       ) : (
         <WardrobeCurrentOutfit

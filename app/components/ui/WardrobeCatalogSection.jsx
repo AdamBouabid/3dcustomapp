@@ -1,8 +1,6 @@
 "use client";
-import React from "react";
-import { History, CheckSquare, Square, ListChecks, Shirt, Wind, PersonStanding, Footprints, Star } from "lucide-react";
-import { buildCardPalette, buildPreviewGradient } from "./wardrobeUtils";
-import ColorPicker from "./ColorPicker";
+import React, { useState } from "react";
+import { History, CheckSquare, Square, ListChecks, Shirt, Wind, PersonStanding, Footprints } from "lucide-react";
 import MiniModelPreview from "./MiniModelPreview";
 
 const ICON_MAP = { Shirt, Wind, PersonStanding, Footprints };
@@ -13,9 +11,6 @@ export default function WardrobeCatalogSection({
   recentItems,
   activeItem,
   setActiveItem,
-  wardrobe,
-  colors,
-  favoriteSet,
   selectionMode,
   selectedCatalogSet,
   selectedCatalogIds,
@@ -25,11 +20,16 @@ export default function WardrobeCatalogSection({
   equipSelected,
   unequipSelected,
   toggleCatalogSelection,
-  handleEquip,
-  handleUnequip,
-  setColor,
-  toggleFavorite,
+  previewBackdrop = "studio",
+  onPreviewBackdropChange,
 }) {
+  const [hoveredId, setHoveredId] = useState(null);
+  const backdropOptions = [
+    { id: "studio", label: "Studio" },
+    { id: "transparent", label: "Clear" },
+    { id: "gradient", label: "Glow" },
+  ];
+
   return (
     <section className="flex flex-col gap-3">
       <div className="wardrobe-elevated flex flex-wrap items-center gap-1.5 rounded-[1rem] p-2">
@@ -81,6 +81,26 @@ export default function WardrobeCatalogSection({
             </span>
           </>
         )}
+
+        <div className={`flex items-center gap-1 ${selectionMode ? "w-full justify-end pt-1" : "ml-auto"}`}>
+          {backdropOptions.map((option) => {
+            const isCurrent = previewBackdrop === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => onPreviewBackdropChange?.(option.id)}
+                className={`rounded-full px-2.5 py-1.5 text-[10px] font-medium tracking-[0.04em] transition-colors ${
+                  isCurrent
+                    ? "bg-white/[0.14] text-white"
+                    : "bg-white/[0.04] text-white/58 hover:text-white/86"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {recentItems.length > 0 && (
@@ -114,17 +134,31 @@ export default function WardrobeCatalogSection({
       )}
 
       <div className="catalog-grid">
-        {catalogItems.map(({ id, label, url, icon, accent, category: itemCategory, type }) => {
-          const Icon = ICON_MAP[icon] ?? Shirt;
-          const isEquipped = Boolean(wardrobe[id]);
+        {catalogItems.map(({ id, label, url, accent, category, type }, index) => {
           const isActive = activeItem === id;
-          const isFavorite = favoriteSet.has(id);
           const isSelected = selectedCatalogSet.has(id);
-          const palette = buildCardPalette(accent);
+          const isHovered = hoveredId === id;
 
           return (
             <article
               key={id}
+              role="button"
+              tabIndex={0}
+              onMouseEnter={() => setHoveredId(id)}
+              onMouseLeave={() => setHoveredId((current) => (current === id ? null : current))}
+              onFocus={() => setHoveredId(id)}
+              onBlur={() => setHoveredId((current) => (current === id ? null : current))}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") {
+                  return;
+                }
+
+                event.preventDefault();
+                setActiveItem(id);
+                if (selectionMode) {
+                  toggleCatalogSelection(id);
+                }
+              }}
               onClick={() => {
                 setActiveItem(id);
                 if (selectionMode) {
@@ -135,103 +169,27 @@ export default function WardrobeCatalogSection({
               style={{
                 "--card-accent": accent,
                 "--card-accent-soft": `${accent}33`,
+                "--card-delay": `${Math.min(index * 24, 240)}ms`,
               }}
             >
-              <div className="catalog-card__media" style={{ background: buildPreviewGradient(accent) }}>
+              <span className="catalog-card__ring" aria-hidden="true" />
+              <div className={`catalog-card__media catalog-card__media--${previewBackdrop}`}>
                 {selectionMode && (
                   <label className="catalog-card__select" onClick={(event) => event.stopPropagation()}>
                     <input type="checkbox" checked={isSelected} onChange={() => toggleCatalogSelection(id)} />
                     <span>Select</span>
                   </label>
                 )}
-                {isEquipped && (
-                  <span className="catalog-card__badge">Equipped</span>
-                )}
-
-                <button
-                  type="button"
-                  aria-label={isFavorite ? `Unfavorite ${label}` : `Favorite ${label}`}
-                  className={`catalog-card__favorite ${isFavorite ? "catalog-card__favorite--active" : ""}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    toggleFavorite(id);
-                  }}
-                >
-                  <Star size={15} fill={isFavorite ? "currentColor" : "none"} />
-                </button>
-
-                <MiniModelPreview url={url} color={accent} />
-
-                <div className="catalog-card__hover" aria-hidden="true">
-                  <div className="catalog-card__hover-mannequin">
-                    <div className="catalog-card__hover-body" />
-                    <div className="catalog-card__hover-item" style={{ background: accent }} />
-                  </div>
-                  <div className="catalog-card__hover-details">
-                    <span className="catalog-card__hover-title">Quick specs</span>
-                    <span className="catalog-card__hover-meta">{itemCategory} · {type}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="catalog-card__body">
-                <div className="catalog-card__title-row">
-                  <div>
-                    <p className="catalog-card__title">{label}</p>
-                    <div className="catalog-card__tags">
-                      <span className="catalog-card__tag-main">
-                        <Icon size={12} /> {itemCategory ?? "Custom"}
-                      </span>
-                      {type && <span className="catalog-card__tag-alt">{type}</span>}
-                    </div>
-                  </div>
-                  <div className="catalog-card__cta">
-                    {isEquipped ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleUnequip(id);
-                        }}
-                        className="catalog-card__btn catalog-card__btn--ghost"
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleEquip(id, url);
-                        }}
-                        className="catalog-card__btn"
-                      >
-                        Equip
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="catalog-card__swatches">
-                  {palette.map((swatch, index) => {
-                    const currentColor = (colors[id] ?? accent ?? "").toString().toLowerCase();
-                    return (
-                      <button
-                        key={`${id}-swatch-${index}`}
-                        type="button"
-                        title={`Apply ${swatch}`}
-                        className={`catalog-card__swatch ${currentColor === swatch.toLowerCase() ? "catalog-card__swatch--active" : ""}`}
-                        style={{ background: swatch }}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setColor?.(id, swatch);
-                        }}
-                      />
-                    );
-                  })}
-                  <div className="catalog-card__picker">
-                    <ColorPicker color={colors[id] ?? accent} onChange={(hex) => setColor?.(id, hex)} />
-                  </div>
+                <MiniModelPreview
+                  url={url}
+                  category={category}
+                  type={type}
+                  label={label}
+                  hovered={isHovered}
+                  color={accent}
+                />
+                <div className="catalog-card__label" aria-hidden={!isHovered && !isActive && !isSelected}>
+                  <span className="catalog-card__label-text">{label}</span>
                 </div>
               </div>
             </article>

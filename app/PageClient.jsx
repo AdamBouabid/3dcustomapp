@@ -1,20 +1,11 @@
 ﻿"use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import { useWardrobe } from "./hooks/useWardrobe";
-import AppNavbar from "./components/ui/AppNavbar";
-import WardrobePanel from "./components/ui/WardrobePanel";
-import SceneToolbar from "./components/ui/SceneToolbar";
-
-const Scene = dynamic(() => import("./components/scene/Scene"), { ssr: false });
+import OutfitRoom from "./components/layout/OutfitRoom";
 
 export default function PageClient({ initialCatalogItems }) {
   const { wardrobe, setWardrobe, activeItem, setActiveItem, equip, unequip, colors, setColor } = useWardrobe();
   const [theme, setTheme] = useState("dark");
-  const [autoRotate, setAutoRotate] = useState(false);
-  const [environment, setEnvironment] = useState("city");
-  const [profileMode, setProfileMode] = useState(false);
-  const [shaderMode, setShaderMode] = useState("toon");
   const [focusMode, setFocusMode] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("outfit");
@@ -35,15 +26,6 @@ export default function PageClient({ initialCatalogItems }) {
     const canvasTarget = canvasRef.current?.gl?.domElement ?? canvasRef.current;
     if (!canvasTarget || typeof canvasTarget.toDataURL !== "function") return null;
     return canvasTarget.toDataURL("image/png");
-  };
-
-  const handleSnapshot = () => {
-    const url = createSnapshotData();
-    if (!url) return;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "outfit-snapshot.png";
-    a.click();
   };
 
   const activeItemLabel = useMemo(() => {
@@ -91,89 +73,32 @@ export default function PageClient({ initialCatalogItems }) {
 
   return (
     <div style={{ width: "100vw", height: "100vh", margin: 0, padding: 0 }}>
-      <AppNavbar
+      <OutfitRoom
         isDark={theme === "dark"}
-        totalItems={initialCatalogItems.length}
-        equippedCount={equippedCount}
-        activeLabel={activeItemLabel}
+        initialCatalogItems={initialCatalogItems}
+        wardrobe={wardrobe}
+        equip={equip}
+        unequip={unequip}
+        activeItem={activeItem}
+        setActiveItem={setActiveItem}
+        colors={colors}
+        setColor={setColor}
+        onLoadOutfit={handleLoadOutfit}
+        createSnapshotData={createSnapshotData}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
-        search={search}
-        onSearchChange={setSearch}
+        setActiveTab={setActiveTab}
         category={category}
-        onCategoryChange={setCategory}
-        categories={categories}
-        colorFamily={colorFamily}
-        onColorFamilyChange={setColorFamily}
+        search={search}
         equippedOnly={equippedOnly}
-        onEquippedOnlyChange={setEquippedOnly}
         favoritesOnly={favoritesOnly}
-        onFavoritesOnlyChange={setFavoritesOnly}
         topsOnly={topsOnly}
-        onTopsOnlyChange={setTopsOnly}
         recentlyImportedOnly={recentlyImportedOnly}
-        onRecentlyImportedOnlyChange={setRecentlyImportedOnly}
-        onRandomizeEquippedColors={randomizeEquippedColors}
-        onClearOutfit={clearOutfit}
-        hasEquipped={equippedCount > 0}
-        focusMode={focusMode}
-        onToggleFocusMode={() => setFocusMode((v) => !v)}
+        colorFamily={colorFamily}
         panelCollapsed={panelCollapsed}
-        onTogglePanel={() => setPanelCollapsed((v) => !v)}
-      />
-
-      <div style={{ display: "flex", height: "calc(100% - 64px)" }}>
-        <div style={{ width: panelCollapsed ? 0 : "420px", overflow: "hidden", transition: "width 180ms ease" }}>
-          <WardrobePanel
-            isDark={theme === "dark"}
-            items={initialCatalogItems}
-            wardrobe={wardrobe}
-            equip={equip}
-            unequip={unequip}
-            activeItem={activeItem}
-            setActiveItem={setActiveItem}
-            colors={colors}
-            setColor={setColor}
-            onLoadOutfit={handleLoadOutfit}
-            createSnapshotData={createSnapshotData}
-            activeTab={activeTab}
-            category={category}
-            search={search}
-            equippedOnly={equippedOnly}
-            favoritesOnly={favoritesOnly}
-            topsOnly={topsOnly}
-            recentlyImportedOnly={recentlyImportedOnly}
-            colorFamily={colorFamily}
-          />
-        </div>
-
-        <main style={{ flex: 1 }}>
-          <Scene
-            items={equippedItems}
-            colors={colors}
-            canvasRef={canvasRef}
-            autoRotate={autoRotate}
-            environment={environment}
-            focusMode={focusMode}
-            shaderMode={shaderMode}
-          />
-        </main>
-      </div>
-
-      <SceneToolbar
-        isDark={theme === "dark"}
-        onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-        autoRotate={autoRotate}
-        onToggleRotate={() => setAutoRotate((v) => !v)}
-        environment={environment}
-        onEnvironment={setEnvironment}
-        profileMode={profileMode}
-        onToggleProfileMode={() => setProfileMode((v) => !v)}
-        shaderMode={shaderMode}
-        onToggleShaderMode={() => setShaderMode((s) => (s === "toon" ? "pbr" : "toon"))}
-        onSnapshot={handleSnapshot}
-        dockOpen={!panelCollapsed}
-        onToggleDock={() => setPanelCollapsed((v) => !v)}
+        setPanelCollapsed={setPanelCollapsed}
+        equippedItems={equippedItems}
+        canvasRef={canvasRef}
+        focusMode={focusMode}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { HexColorPicker, HexColorInput } from "react-colorful";
 import { Sparkles } from "lucide-react";
@@ -95,16 +95,24 @@ function generateStylistPalettes(hex) {
   ];
 }
 
-export default function ColorPicker({ color, onChange }) {
-  const [open, setOpen] = useState(false);
+export default function ColorPicker({ color, onChange, open: controlledOpen, onOpenChange, anchorRef: externalAnchorRef }) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = useCallback((val) => {
+    const next = typeof val === "function" ? val(open) : val;
+    if (isControlled) onOpenChange?.(next);
+    else setInternalOpen(next);
+  }, [isControlled, onOpenChange, open]);
   const palettes = useMemo(() => generateStylistPalettes(color), [color]);
   const [popoverSize, setPopoverSize] = useState({ width: DESKTOP_POPOVER_WIDTH, height: DESKTOP_POPOVER_HEIGHT });
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
   const containerRef = useRef(null);
-  const triggerRef = useRef(null);
+  const internalTriggerRef = useRef(null);
+  const triggerRef = externalAnchorRef ?? internalTriggerRef;
   const popoverRef = useRef(null);
 
-  const updatePopoverPosition = () => {
+  const updatePopoverPosition = useCallback(() => {
     if (!triggerRef.current) return;
 
     const isMobile = window.innerWidth < 768;
@@ -128,7 +136,7 @@ export default function ColorPicker({ color, onChange }) {
 
     setPopoverSize({ width: popoverWidth, height: popoverHeight });
     setPopoverPos({ top, left });
-  };
+  }, [triggerRef]);
 
   // Close on outside click
   useEffect(() => {
@@ -137,7 +145,7 @@ export default function ColorPicker({ color, onChange }) {
     const rafId = window.requestAnimationFrame(updatePopoverPosition);
 
     const handler = (e) => {
-      const isInsideTrigger = containerRef.current?.contains(e.target);
+      const isInsideTrigger = containerRef.current?.contains(e.target) || externalAnchorRef?.current?.contains(e.target);
       const isInsidePopover = popoverRef.current?.contains(e.target);
 
       if (!isInsideTrigger && !isInsidePopover) {
@@ -161,18 +169,20 @@ export default function ColorPicker({ color, onChange }) {
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [open]);
+  }, [open, externalAnchorRef, setOpen, updatePopoverPosition]);
 
   return (
     <div ref={containerRef} className="relative" onClick={(e) => e.stopPropagation()}>
-      {/* Swatch trigger */}
-      <button
-        ref={triggerRef}
-        onClick={() => setOpen((v) => !v)}
-        title="Pick color"
-        className="h-8 w-8 shrink-0 rounded-xl border border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition hover:scale-105 active:scale-95"
-        style={{ background: color }}
-      />
+      {/* Swatch trigger — hidden in controlled mode */}
+      {!isControlled && (
+        <button
+          ref={internalTriggerRef}
+          onClick={() => setOpen((v) => !v)}
+          title="Pick color"
+          className="h-8 w-8 shrink-0 rounded-xl border border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition hover:scale-105 active:scale-95"
+          style={{ background: color }}
+        />
+      )}
 
       {/* Popover */}
       {open && typeof document !== "undefined" && createPortal(
