@@ -6,6 +6,11 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { gsap } from "gsap";
 
+function pseudoRandom(seed) {
+  const x = Math.sin(seed) * 43758.5453123;
+  return x - Math.floor(x);
+}
+
 function CameraController({ focusMode, activeItem, itemsData }) {
   const { camera, controls } = useThree();
 
@@ -166,17 +171,25 @@ function DustParticles({ count = 90 }) {
 
   const { positions, velocities } = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const vel = [];
+    const vel = new Float32Array(count * 3);
+
     for (let i = 0; i < count; i++) {
-      pos[i * 3]     = (Math.random() - 0.5) * 8;
-      pos[i * 3 + 1] = Math.random() * 6;
-      pos[i * 3 + 2] = -1 + (Math.random() - 0.5) * 4;
-      vel.push(
-        (Math.random() - 0.5) * 0.003,
-        Math.random() * 0.0025 + 0.0005,
-        (Math.random() - 0.5) * 0.001
-      );
+      const r1 = pseudoRandom(i * 3 + 0.1);
+      const r2 = pseudoRandom(i * 3 + 0.2);
+      const r3 = pseudoRandom(i * 3 + 0.3);
+      const r4 = pseudoRandom(i * 3 + 0.4);
+      const r5 = pseudoRandom(i * 3 + 0.5);
+      const r6 = pseudoRandom(i * 3 + 0.6);
+
+      pos[i * 3] = (r1 - 0.5) * 8;
+      pos[i * 3 + 1] = r2 * 6;
+      pos[i * 3 + 2] = -1 + (r3 - 0.5) * 4;
+
+      vel[i * 3] = (r4 - 0.5) * 0.003;
+      vel[i * 3 + 1] = r5 * 0.0025 + 0.0005;
+      vel[i * 3 + 2] = (r6 - 0.5) * 0.001;
     }
+
     return { positions: pos, velocities: vel };
   }, [count]);
 
@@ -321,6 +334,8 @@ export default function Scene({
             />
             {/* Sky fill — subtle only */}
             <directionalLight position={[-3, 5, 2]} intensity={0.3} color="#87CEEB" />
+            {/* Rim light — behind model, skims the silhouette edge */}
+            <directionalLight position={[0.6, 4, -4]} intensity={0.55} color="#fff0d8" />
           </>
         ) : (
           /* ── Night Studio lighting ── */
@@ -338,6 +353,8 @@ export default function Scene({
             <directionalLight position={[-3, 4, 3]} intensity={1.2} color="#9b77ff" />
             <directionalLight position={[0, 3, -6]} intensity={2.8} color="#9333ea" />
             <pointLight        position={[0, 2, -4]} intensity={1.4} color="#a855f7" distance={8} />
+            {/* Rim light — cool backlight kisses the silhouette from behind */}
+            <directionalLight position={[-0.7, 3.5, -4]} intensity={0.9} color="#a8d8ff" />
           </>
         )}
 

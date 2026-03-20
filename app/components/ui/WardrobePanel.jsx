@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
+import { Sun, Moon, Briefcase, Shirt, Sparkles, RotateCw, Trash2, Clock3 } from "lucide-react";
 import { profileMark } from "../../utils/perf";
 import WardrobePanelHeader from "./WardrobePanelHeader";
 import WardrobeCatalogSection from "./WardrobeCatalogSection";
@@ -110,11 +111,6 @@ function buildInitialImportRegistry(items) {
   return nextRegistry;
 }
 
-const OutfitSlots = dynamic(() => import("./OutfitSlots"), {
-  ssr: false,
-  loading: () => <p className="text-[11px] text-white/30 px-1">Loading outfits...</p>,
-});
-
 function WardrobePanel({
   isDark = true,
   items,
@@ -134,6 +130,11 @@ function WardrobePanel({
   colorFamily = "all",
   onToggleSelectionMode,
   onCategoryChange,
+  applyOutfitTheme,
+  undoOutfit,
+  clearOutfit,
+  activeOutfitMode,
+  wardrobeHistory,
 }) {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCatalogIds, setSelectedCatalogIds] = useState([]);
@@ -329,21 +330,6 @@ function WardrobePanel({
           handleUnequip={handleUnequip}
           toggleFavorite={toggleFavorite}
         />
-      )}
-
-      {activeTab === "outfit" && (
-        <>
-          <div className="wardrobe-hairline" />
-
-          {/* Outfit save/load */}
-          <OutfitSlots
-            items={items}
-            wardrobe={wardrobe}
-            colors={colors}
-            onLoad={onLoadOutfit}
-            createSnapshotData={createSnapshotData}
-          />
-        </>
       )}
     </aside>
   );

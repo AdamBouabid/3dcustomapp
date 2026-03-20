@@ -24,6 +24,11 @@ export default function Sidebar({
   colorFamily,
   panelCollapsed,
   onCategoryChange,
+  applyOutfitTheme,
+  undoOutfit,
+  clearOutfit,
+  activeOutfitMode,
+  wardrobeHistory,
 }) {
   return (
     <aside style={{
@@ -59,6 +64,11 @@ export default function Sidebar({
         recentlyImportedOnly={recentlyImportedOnly}
         colorFamily={colorFamily}
         onCategoryChange={onCategoryChange}
+        applyOutfitTheme={applyOutfitTheme}
+        undoOutfit={undoOutfit}
+        clearOutfit={clearOutfit}
+        activeOutfitMode={activeOutfitMode}
+        wardrobeHistory={wardrobeHistory}
       />
     </aside>
   );

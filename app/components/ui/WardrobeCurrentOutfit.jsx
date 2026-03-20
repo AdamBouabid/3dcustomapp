@@ -1,8 +1,18 @@
 "use client";
 import React, { useState } from "react";
-import { Shirt, Wind, PersonStanding, Footprints, ChevronRight, X, Star } from "lucide-react";
+import { Shirt, Layers, Sparkles, Crown, Footprints, ChevronRight, X, Star, Plus } from "lucide-react";
 
-const ICON_MAP = { Shirt, Wind, PersonStanding, Footprints };
+// Maps the icon-string stored on each wardrobe item → Lucide component
+const ICON_MAP = {
+  Shirt,
+  Layers,
+  Sparkles,
+  Crown,
+  Footprints,
+  // legacy / fallback aliases
+  Wind: Layers,
+  PersonStanding: Sparkles,
+};
 
 export default function WardrobeCurrentOutfit({
   items,
@@ -36,10 +46,12 @@ export default function WardrobeCurrentOutfit({
             <div
               key={id}
               onClick={() => setActiveItem(id)}
-              className={`wardrobe-glow-hover group relative flex items-center gap-3 rounded-[1.2rem] px-3.5 py-2.5 cursor-pointer transition-all duration-200 ${
+              className={`wardrobe-glow-hover group relative flex items-center justify-between gap-3 rounded-[2rem] border px-3.5 py-2.5 cursor-pointer transition-all duration-200 ${
                 isActive
-                  ? "bg-[linear-gradient(135deg,rgba(99,102,241,0.22)_0%,rgba(139,92,246,0.10)_60%,rgba(255,255,255,0.03)_100%)] ring-1 ring-indigo-400/30 shadow-[0_4px_20px_rgba(99,102,241,0.18)]"
-                  : "bg-white/[0.025] hover:bg-white/[0.055] hover:ring-1 hover:ring-white/8"
+                  ? "border-indigo-400/35 bg-[linear-gradient(135deg,rgba(99,102,241,0.22)_0%,rgba(139,92,246,0.10)_60%,rgba(255,255,255,0.03)_100%)] ring-1 ring-indigo-400/30 shadow-[0_4px_20px_rgba(99,102,241,0.18)]"
+                  : isEquipped
+                  ? "wardrobe-slot-equipped hover:ring-1 hover:ring-emerald-400/30"
+                  : "border-white/[0.06] bg-white/[0.025] hover:bg-white/[0.055] hover:ring-1 hover:ring-white/8"
               }`}
             >
               {/* Icon thumbnail */}
@@ -55,45 +67,55 @@ export default function WardrobeCurrentOutfit({
                 <Icon size={18} style={{ color: accent, filter: `drop-shadow(0 0 6px ${accent}80)` }} />
               </div>
 
-              <div className="text-[11px] text-white/50">
-                {isEquipped ? (
-                  <span className="wardrobe-status-equipped">Equipped</span>
-                ) : (
-                  <span className="wardrobe-status-available">Available</span>
-                )}
+              {/* Item label */}
+              <div className="flex-1 text-left text-[11px] font-semibold uppercase tracking-wide text-white/70 px-1">
+                {label}
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleFavorite(id); }}
-                  className={`flex h-7 w-7 items-center justify-center rounded-[0.7rem] border transition-all ${
-                    isFavorite
-                      ? "border-indigo-300/40 bg-indigo-500/18 text-indigo-200"
-                      : "border-white/8 bg-white/[0.04] text-white/38 hover:text-indigo-200"
-                  }`}
-                  title={isFavorite ? `Unfavorite ${label}` : `Favorite ${label}`}
-                >
-                  <Star size={11} fill={isFavorite ? "currentColor" : "none"} />
-                </button>
+              {/* Right-side actions/status */}
+              <div className="flex flex-1 items-center justify-end gap-3">
+                <div className="text-[11px] text-white/50">
+                  {isEquipped ? (
+                    <span className="wardrobe-status-equipped">Equipped</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-white/[0.03] px-2 py-0.5 text-[9px] font-semibold tracking-[0.07em] text-white/28 uppercase">
+                      <Plus size={9} className="opacity-60" />
+                      Add
+                    </span>
+                  )}
+                </div>
 
-                {isEquipped ? (
+                <div className="flex items-center gap-1">
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleUnequip(id); }}
-                    className="flex h-7 w-7 items-center justify-center rounded-[0.7rem] border border-white/8 bg-white/[0.04] text-white/55 transition-all hover:bg-red-500/18 hover:text-red-300"
-                    title={`Remove ${label}`}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(id); }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-[0.7rem] border transition-all ${
+                      isFavorite
+                        ? "border-indigo-300/40 bg-indigo-500/18 text-indigo-200"
+                        : "border-white/8 bg-white/[0.04] text-white/38 hover:text-indigo-200"
+                    }`}
+                    title={isFavorite ? `Unfavorite ${label}` : `Favorite ${label}`}
                   >
-                    <X size={12} />
+                    <Star size={11} fill={isFavorite ? "currentColor" : "none"} />
                   </button>
-                ) : (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleEquipWithFeedback(id, url); }}
-                    className="flex h-7 w-7 items-center justify-center rounded-[0.7rem] border border-white/8 bg-white/[0.04] text-white/45 transition-all hover:text-indigo-200 hover:bg-indigo-500/10"
-                    title={`Equip ${label}`}
-                  >
-                    <ChevronRight size={13} />
-                  </button>
-                )}
+
+                  {isEquipped ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleUnequip(id); }}
+                      className="flex h-7 w-7 items-center justify-center rounded-[0.7rem] border border-white/8 bg-white/[0.04] text-white/55 transition-all hover:bg-red-500/18 hover:text-red-300"
+                      title={`Remove ${label}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEquipWithFeedback(id, url); }}
+                      className="flex h-7 w-7 items-center justify-center rounded-[0.7rem] border border-white/8 bg-white/[0.04] text-white/45 transition-all hover:text-indigo-200 hover:bg-indigo-500/10"
+                      title={`Equip ${label}`}
+                    >
+                      <ChevronRight size={13} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Active left accent bar */}

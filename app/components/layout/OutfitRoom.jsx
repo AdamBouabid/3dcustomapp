@@ -36,6 +36,11 @@ export default function OutfitRoom({
   onCategoryChange,
   scenePreset,
   setScenePreset,
+  applyOutfitTheme,
+  undoOutfit,
+  clearOutfit,
+  activeOutfitMode,
+  wardrobeHistory,
 }) {
   const sceneItems = useMemo(() => {
     if (activeTab === "catalog") {
@@ -83,6 +88,11 @@ export default function OutfitRoom({
         colorFamily={colorFamily}
         panelCollapsed={panelCollapsed}
         onCategoryChange={onCategoryChange}
+        applyOutfitTheme={applyOutfitTheme}
+        undoOutfit={undoOutfit}
+        clearOutfit={clearOutfit}
+        activeOutfitMode={activeOutfitMode}
+        wardrobeHistory={wardrobeHistory}
       />
 
       {/* Scene fills the entire container — sidebar floats on top */}

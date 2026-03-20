@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
 @import "tailwindcss";
 
 /* ── Keyframe animations ─────────────────────────────────────────────────── */
@@ -40,6 +42,18 @@
 @keyframes wardrobe-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+@keyframes equipped-ring-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0),
+                inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.14),
+                0 0 14px rgba(52, 211, 153, 0.10),
+                inset 0 1px 0 rgba(255,255,255,0.10);
+  }
 }
 
 :root {
@@ -160,21 +174,22 @@ h4 {
 .wardrobe-panel-shell:focus-within *::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.18);
 }
-
+.wardrobe-script {
+  font-family: 'Great Vibes', cursive;
+  font-style: normal;
+}
 .wardrobe-panel-shell {
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(124,136,255,0.08) 100%),
-    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(34,37,49,0.12) 100%),
-    var(--wardrobe-panel);
-  border: 1.5px solid var(--wardrobe-border);
+    radial-gradient(circle at 14% 14%, rgba(89, 115, 189, 0.35), transparent 38%),
+    radial-gradient(circle at 84% 72%, rgba(145, 107, 255, 0.28), transparent 26%),
+    linear-gradient(135deg, rgba(12, 14, 19, 0.96) 0%, rgba(10, 11, 16, 0.94) 38%, rgba(4, 6, 10, 0.90) 100%);
+  border: 1px solid rgba(100, 116, 187, 0.48);
   box-shadow:
-    0 6px 18px 0 rgba(34, 37, 49, 0.16),
-    0 1px 6px 0 rgba(124,136,255,0.08),
-    0 0.5px 1px 0 rgba(34, 37, 49, 0.06),
-    0 0 0 1px rgba(124,136,255,0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px) saturate(1.05);
+    0 14px 40px 0 rgba(2, 5, 15, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 0.5px rgba(78, 93, 160, 0.24);
+  backdrop-filter: blur(18px) saturate(1.2);
   border-radius: 2rem;
   margin: 0;
   transition: box-shadow 0.2s, background 0.2s;

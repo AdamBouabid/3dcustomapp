@@ -90,9 +90,11 @@ function inferIcon(category) {
     case "footwear":
       return "Footprints";
     case "one-piece":
-      return "PersonStanding";
+      return "Sparkles";
     case "bottoms":
-      return "Wind";
+      return "Layers";
+    case "headwear":
+      return "Crown";
     default:
       return "Shirt";
   }

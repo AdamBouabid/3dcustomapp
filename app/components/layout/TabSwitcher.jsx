@@ -121,7 +121,8 @@ export default function TabSwitcher({
       zIndex: 30,
       display: "flex",
       flexDirection: "column",
-      gap: "12px",
+      gap: "16px",
+      alignItems: "center",
       pointerEvents: "auto",
       transition: "left 180ms ease",
     }}>
@@ -172,8 +173,6 @@ export default function TabSwitcher({
         )}
       </div>
 
-      <div style={{ height: "4px" }} />
-
       {showFocusButton && (
         <>
           {/* ── Focus Mode ── */}
@@ -210,7 +209,6 @@ export default function TabSwitcher({
             {hoveredId === "focus" && <CircleTooltip light={isDaylight} label={focusMode ? "Exit Focus" : "Focus Mode"} />}
           </div>
 
-          <div style={{ height: "4px" }} />
         </>
       )}
 
