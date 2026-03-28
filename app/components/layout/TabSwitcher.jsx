@@ -1,13 +1,15 @@
 "use client";
 import React, { useMemo, useRef, useState } from "react";
-import { Paintbrush, Library, PanelLeft, PanelLeftClose, Palette, Sparkles, Sun, Moon } from "lucide-react";
+import { Home, Library, Moon, Paintbrush, Palette, PanelLeft, PanelLeftClose, Sparkles, Sun } from "lucide-react";
 import ColorPicker from "../ui/ColorPicker";
+import { hexToRgba, isValidHexColor, normalizeHex } from "../ui/wardrobeUtils";
 
 const RECENT_COLORS_KEY = "wardrobe-recent-colors";
+const PANEL_WIDTH = "clamp(320px, 34vw, 420px)";
 const PRESET_COLORS = [
-  { hex: "#f97316", name: "Sunset Ember" },
-  { hex: "#14b8a6", name: "Nordic Teal" },
-  { hex: "#8b5cf6", name: "Midnight Velvet" },
+  { hex: "#d97745", name: "Amber Clay" },
+  { hex: "#0ea5a4", name: "Sea Glass" },
+  { hex: "#7486ff", name: "Gallery Blue" },
 ];
 
 const CIRCLE_BASE = {
@@ -59,11 +61,18 @@ export default function TabSwitcher({
   onPaletteColorChange,
   focusMode,
   onFocusModeChange,
-  scenePreset = "night-studio",
+  scenePreset = "gallery-day",
   onScenePresetChange,
+  accentColor = "#7486ff",
 }) {
-  const containerLeft = panelCollapsed ? "24px" : "calc(420px + 20px)";
-  const isDaylight = scenePreset === "daylight";
+  const accent = normalizeHex(accentColor);
+  const isDayMode = scenePreset !== "gallery-evening";
+  const containerLeft = panelCollapsed ? "24px" : `calc(${PANEL_WIDTH} + 20px)`;
+  const navItems = useMemo(() => ([
+    { id: "outfit", icon: Paintbrush, label: "Outfit" },
+    { id: "catalog", icon: Library, label: "Catalog" },
+    { id: "room", icon: Home, label: "Atelier" },
+  ]), []);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -74,8 +83,12 @@ export default function TabSwitcher({
       const saved = window.localStorage.getItem(RECENT_COLORS_KEY);
       if (!saved) return [];
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed.slice(0, 12);
-    } catch { /* ignore */ }
+      if (Array.isArray(parsed)) {
+        return parsed.filter((entry) => typeof entry === "string").slice(0, 12);
+      }
+    } catch {
+      return [];
+    }
     return [];
   });
   const paletteButtonRef = useRef(null);
@@ -87,9 +100,9 @@ export default function TabSwitcher({
 
   const storeRecentColor = (hex) => {
     if (!hex) return;
-    const normalized = hex.toLowerCase();
+    const normalized = normalizeHex(hex).toLowerCase();
     setRecentColors((prev) => {
-      const next = [normalized, ...prev.filter((c) => c !== normalized)].slice(0, 12);
+      const next = [normalized, ...prev.filter((entry) => entry !== normalized)].slice(0, 12);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(next));
       }
@@ -98,19 +111,63 @@ export default function TabSwitcher({
   };
 
   const applyColor = (hex) => {
-    if (!activeItem || !onPaletteColorChange) return;
-    onPaletteColorChange(activeItem, hex);
-    storeRecentColor(hex);
+    if (!activeItem || !onPaletteColorChange || !isValidHexColor(hex)) return;
+    const normalized = normalizeHex(hex);
+    onPaletteColorChange(activeItem, normalized);
+    storeRecentColor(normalized);
   };
 
   const swatches = useMemo(() => {
-    const normalizedActive = activeColor?.toLowerCase();
-    const isPreset = PRESET_COLORS.some((p) => p.hex === normalizedActive);
-    if (normalizedActive && !isPreset) {
-      return [{ hex: normalizedActive, name: "Current Color" }, ...PRESET_COLORS].slice(0, 3);
+    const stack = [];
+    if (isValidHexColor(activeColor)) {
+      stack.push({ hex: normalizeHex(activeColor).toLowerCase(), name: "Current Color" });
     }
-    return PRESET_COLORS;
-  }, [activeColor]);
+
+    recentColors.slice(0, 2).forEach((hex, index) => {
+      stack.push({ hex: normalizeHex(hex).toLowerCase(), name: index === 0 ? "Recent Tone" : "Recent Accent" });
+    });
+
+    PRESET_COLORS.forEach((color) => stack.push(color));
+
+    const unique = [];
+    const seen = new Set();
+    stack.forEach((entry) => {
+      const key = entry.hex.toLowerCase();
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      unique.push({ ...entry, hex: key });
+    });
+
+    return unique.slice(0, 4);
+  }, [activeColor, recentColors]);
+
+  const activeAccentBorder = hexToRgba(accent, isDayMode ? 0.72 : 0.82);
+  const activeAccentWash = hexToRgba(accent, isDayMode ? 0.22 : 0.34);
+  const activeAccentSoft = hexToRgba(accent, isDayMode ? 0.08 : 0.12);
+
+  const navButtonStyle = (isActive) => ({
+    ...CIRCLE_BASE,
+    border: isDayMode
+      ? `2px solid ${isActive ? activeAccentBorder : "rgba(15,23,42,0.12)"}`
+      : `2px solid ${isActive ? activeAccentBorder : "rgba(255,255,255,0.12)"}`,
+    background: isDayMode
+      ? isActive
+        ? `linear-gradient(135deg, ${activeAccentWash} 0%, ${activeAccentSoft} 100%)`
+        : "rgba(255,255,255,0.72)"
+      : isActive
+        ? `linear-gradient(135deg, ${hexToRgba(accent, 0.34)} 0%, ${hexToRgba(accent, 0.12)} 100%)`
+        : "rgba(255,255,255,0.04)",
+    color: isDayMode
+      ? isActive ? "#10253a" : "rgba(15,23,42,0.6)"
+      : isActive ? "#eef2ff" : "rgba(255,255,255,0.64)",
+    backdropFilter: "blur(10px)",
+    boxShadow: isDayMode
+      ? isActive ? `0 0 22px ${hexToRgba(accent, 0.22)}` : "0 2px 8px rgba(0,0,0,0.08)"
+      : isActive ? `0 0 22px ${hexToRgba(accent, 0.28)}` : "0 2px 8px rgba(0,0,0,0.2)",
+    transition: "all 280ms ease",
+  });
 
   return (
     <div style={{
@@ -124,130 +181,144 @@ export default function TabSwitcher({
       gap: "16px",
       alignItems: "center",
       pointerEvents: "auto",
-      transition: "left 180ms ease",
+      transition: "left 220ms cubic-bezier(0.22,1,0.36,1)",
     }}>
-      {/* ── Scene Preset Toggle (always visible) ── */}
+      <div style={{
+        position: "absolute",
+        inset: "-10px",
+        borderRadius: "999px",
+        background: isDayMode
+          ? "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.18))"
+          : "linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))",
+        border: isDayMode ? "1px solid rgba(255,255,255,0.35)" : "1px solid rgba(255,255,255,0.08)",
+        boxShadow: isDayMode ? "0 12px 28px rgba(0,0,0,0.12)" : "0 16px 28px rgba(0,0,0,0.28)",
+        backdropFilter: "blur(14px)",
+        zIndex: -1,
+      }} />
+      <div style={{
+        position: "absolute",
+        top: "-56px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        padding: "8px 12px",
+        borderRadius: "999px",
+        border: isDayMode ? "1px solid rgba(15,23,42,0.1)" : "1px solid rgba(255,255,255,0.08)",
+        background: isDayMode ? "rgba(255,255,255,0.72)" : "rgba(7,10,16,0.62)",
+        boxShadow: isDayMode ? "0 10px 22px rgba(15,23,42,0.12)" : "0 16px 26px rgba(0,0,0,0.28)",
+        backdropFilter: "blur(14px)",
+        color: isDayMode ? "#10253a" : "rgba(255,255,255,0.88)",
+        fontSize: "10px",
+        letterSpacing: "0.18em",
+        textTransform: "uppercase",
+        whiteSpace: "nowrap",
+      }}>
+        {navItems.find((item) => item.id === activeTab)?.label ?? "Outfit"} Panel
+      </div>
+
       <div
         style={{ position: "relative" }}
         onMouseEnter={() => setHoveredId("preset")}
         onMouseLeave={() => setHoveredId(null)}
       >
         <button
-          onClick={() =>
-            onScenePresetChange?.(
-              scenePreset === "night-studio" ? "daylight" : "night-studio"
-            )
-          }
+          onClick={() => onScenePresetChange?.(scenePreset === "gallery-evening" ? "gallery-day" : "gallery-evening")}
           style={{
             ...CIRCLE_BASE,
-            border:
-              scenePreset === "daylight"
-                ? "2px solid rgba(255,215,0,0.55)"
-                : "2px solid rgba(148,163,184,0.35)",
-            background:
-              scenePreset === "daylight"
-                ? "linear-gradient(135deg, rgba(255,210,0,0.35) 0%, rgba(255,165,0,0.18) 100%)"
-                : "linear-gradient(135deg, rgba(100,116,139,0.28) 0%, rgba(100,116,139,0.12) 100%)",
+            border: scenePreset === "gallery-evening"
+              ? "2px solid rgba(148,163,184,0.35)"
+              : "2px solid rgba(255,191,71,0.45)",
+            background: scenePreset === "gallery-evening"
+              ? "linear-gradient(135deg, rgba(76,92,123,0.28) 0%, rgba(44,56,84,0.16) 100%)"
+              : "linear-gradient(135deg, rgba(255,210,96,0.32) 0%, rgba(255,176,86,0.16) 100%)",
             color: "rgba(255,255,255,0.95)",
-            backdropFilter: "blur(8px)",
-            transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
-            boxShadow:
-              scenePreset === "daylight"
-                ? "0 0 22px rgba(255,200,0,0.55), 0 0 8px rgba(255,165,0,0.3)"
-                : "0 2px 10px rgba(0,0,0,0.3)",
+            backdropFilter: "blur(10px)",
+            transition: "transform 220ms ease, box-shadow 220ms ease, background 220ms ease",
+            boxShadow: scenePreset === "gallery-evening"
+              ? "0 2px 10px rgba(0,0,0,0.3)"
+              : "0 0 20px rgba(255,190,89,0.35), 0 0 10px rgba(255,165,0,0.18)",
           }}
         >
-          {scenePreset === "daylight" ? (
-            <Sun size={22} strokeWidth={1.75} />
-          ) : (
+          {scenePreset === "gallery-evening" ? (
             <Moon size={20} strokeWidth={1.75} />
+          ) : (
+            <Sun size={22} strokeWidth={1.75} />
           )}
         </button>
         {hoveredId === "preset" && (
           <CircleTooltip
-            light={isDaylight}
-            label={
-              scenePreset === "daylight" ? "Switch to Night Studio" : "Switch to Daylight"
-            }
+            light={isDayMode}
+            label={scenePreset === "gallery-evening" ? "Switch to Day Room" : "Switch to Evening Room"}
           />
         )}
       </div>
 
       {showFocusButton && (
-        <>
-          {/* ── Focus Mode ── */}
-          <div style={{ position: "relative" }}
-            onMouseEnter={() => setHoveredId("focus")}
-            onMouseLeave={() => setHoveredId(null)}
+        <div
+          style={{ position: "relative" }}
+          onMouseEnter={() => setHoveredId("focus")}
+          onMouseLeave={() => setHoveredId(null)}
+        >
+          <button
+            onClick={() => onFocusModeChange?.(!focusMode)}
+            style={{
+              ...CIRCLE_BASE,
+              border: isDayMode
+                ? (focusMode ? `2px solid ${activeAccentBorder}` : `2px solid ${hexToRgba(accent, 0.38)}`)
+                : `2px solid ${hexToRgba(accent, focusMode ? 0.68 : 0.46)}`,
+              background: isDayMode
+                ? focusMode
+                  ? `linear-gradient(135deg, ${activeAccentWash} 0%, ${activeAccentSoft} 100%)`
+                  : "rgba(255,255,255,0.72)"
+                : focusMode
+                  ? `linear-gradient(135deg, ${hexToRgba(accent, 0.38)} 0%, ${hexToRgba(accent, 0.16)} 100%)`
+                  : `linear-gradient(135deg, ${hexToRgba(accent, 0.18)} 0%, ${hexToRgba(accent, 0.08)} 100%)`,
+              color: isDayMode ? "#10253a" : "rgba(255,255,255,0.95)",
+              transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
+              transform: focusMode ? "scale(1.06)" : "scale(1)",
+              boxShadow: isDayMode
+                ? focusMode ? `0 0 18px ${hexToRgba(accent, 0.24)}` : "0 2px 8px rgba(0,0,0,0.1)"
+                : focusMode ? `0 0 24px ${hexToRgba(accent, 0.42)}` : "0 2px 10px rgba(0,0,0,0.3)",
+            }}
           >
-            <button
-              onClick={() => onFocusModeChange?.(!focusMode)}
-              style={{
-                ...CIRCLE_BASE,
-                border: isDaylight
-                  ? (focusMode ? "2px solid rgba(14,165,233,0.8)" : "2px solid rgba(14,165,233,0.4)")
-                  : "2px solid rgba(34,211,238,0.5)",
-                background: isDaylight
-                  ? focusMode
-                    ? "linear-gradient(135deg, rgba(14,165,233,0.22) 0%, rgba(14,165,233,0.1) 100%)"
-                    : "rgba(255,255,255,0.72)"
-                  : focusMode
-                    ? "linear-gradient(135deg, rgba(34,211,238,0.4) 0%, rgba(34,211,238,0.2) 100%)"
-                    : "linear-gradient(135deg, rgba(34,211,238,0.2) 0%, rgba(34,211,238,0.1) 100%)",
-                color: isDaylight ? "#0c4a6e" : "rgba(255,255,255,0.95)",
-                transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
-                transform: focusMode ? "scale(1.06)" : "scale(1)",
-                boxShadow: isDaylight
-                  ? focusMode ? "0 0 18px rgba(14,165,233,0.3)" : "0 2px 8px rgba(0,0,0,0.1)"
-                  : focusMode
-                    ? "0 0 24px rgba(34,211,238,0.7), 0 0 12px rgba(34,211,238,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
-                    : "0 2px 10px rgba(0,0,0,0.3)",
-              }}
-            >
-              <Sparkles size={22} strokeWidth={1.75} />
-            </button>
-            {hoveredId === "focus" && <CircleTooltip light={isDaylight} label={focusMode ? "Exit Focus" : "Focus Mode"} />}
-          </div>
-
-        </>
+            <Sparkles size={22} strokeWidth={1.75} />
+          </button>
+          {hoveredId === "focus" && <CircleTooltip light={isDayMode} label={focusMode ? "Exit Focus" : "Focus Mode"} />}
+        </div>
       )}
 
-      {/* ── Palette trigger ── */}
       {paletteVisible && (
-        <div style={{ position: "relative", zIndex: 50 }}
+        <div
+          style={{ position: "relative", zIndex: 50 }}
           onMouseEnter={() => setHoveredId("palette")}
           onMouseLeave={() => setHoveredId(null)}
         >
           <button
             ref={paletteButtonRef}
-            onClick={() => setPaletteOpen((v) => !v)}
+            onClick={() => setPaletteOpen((value) => !value)}
             style={{
               ...CIRCLE_BASE,
-              border: isDaylight
-                ? (visiblePaletteOpen ? "2px solid rgba(124,58,237,0.7)" : "2px solid rgba(124,58,237,0.35)")
-                : "2px solid rgba(168,85,247,0.5)",
-              background: isDaylight
+              border: isDayMode
+                ? (visiblePaletteOpen ? `2px solid ${activeAccentBorder}` : `2px solid ${hexToRgba(accent, 0.3)}`)
+                : `2px solid ${hexToRgba(accent, 0.48)}`,
+              background: isDayMode
                 ? visiblePaletteOpen
-                  ? "linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(124,58,237,0.07) 100%)"
+                  ? `linear-gradient(135deg, ${activeAccentWash} 0%, ${activeAccentSoft} 100%)`
                   : "rgba(255,255,255,0.72)"
                 : visiblePaletteOpen
-                  ? "linear-gradient(135deg, rgba(168,85,247,0.4) 0%, rgba(168,85,247,0.2) 100%)"
-                  : "linear-gradient(135deg, rgba(168,85,247,0.2) 0%, rgba(168,85,247,0.1) 100%)",
-              color: isDaylight ? "#3b0764" : "rgba(255,255,255,0.95)",
+                  ? `linear-gradient(135deg, ${hexToRgba(accent, 0.36)} 0%, ${hexToRgba(accent, 0.16)} 100%)`
+                  : `linear-gradient(135deg, ${hexToRgba(accent, 0.18)} 0%, ${hexToRgba(accent, 0.08)} 100%)`,
+              color: isDayMode ? "#10253a" : "rgba(255,255,255,0.95)",
               transition: "transform 200ms ease, box-shadow 200ms ease, background 200ms ease",
               transform: visiblePaletteOpen ? "scale(1.06)" : "scale(1)",
-              boxShadow: isDaylight
-                ? visiblePaletteOpen ? "0 0 18px rgba(124,58,237,0.28)" : "0 2px 8px rgba(0,0,0,0.1)"
-                : visiblePaletteOpen
-                  ? "0 0 24px rgba(168,85,247,0.7), 0 0 12px rgba(168,85,247,0.4), inset 0 0 8px rgba(255,255,255,0.2)"
-                  : "0 2px 10px rgba(0,0,0,0.3)",
+              boxShadow: isDayMode
+                ? visiblePaletteOpen ? `0 0 18px ${hexToRgba(accent, 0.24)}` : "0 2px 8px rgba(0,0,0,0.1)"
+                : visiblePaletteOpen ? `0 0 24px ${hexToRgba(accent, 0.38)}` : "0 2px 10px rgba(0,0,0,0.3)",
             }}
           >
             <Palette size={22} strokeWidth={1.75} />
           </button>
-          {hoveredId === "palette" && !visiblePaletteOpen && <CircleTooltip light={isDaylight} label="Color Palette" />}
+          {hoveredId === "palette" && !visiblePaletteOpen && <CircleTooltip light={isDayMode} label="Color Palette" />}
 
-          {/* ── Swatch stack ── */}
           {visiblePaletteOpen && (
             <div style={{
               position: "absolute",
@@ -259,73 +330,78 @@ export default function TabSwitcher({
               gap: "8px",
               zIndex: 60,
             }}>
-              {swatches.map(({ hex, name }, i) => {
-                const isActive = hex.toLowerCase() === activeColor?.toLowerCase();
+              {swatches.map(({ hex, name }, index) => {
+                const isActive = normalizeHex(hex).toLowerCase() === normalizeHex(activeColor || "#7c88ff").toLowerCase();
                 return (
-                  <div key={hex} style={{ position: "relative" }}
+                  <div
+                    key={hex}
+                    style={{ position: "relative" }}
                     onMouseEnter={() => setHoveredId(`swatch-${hex}`)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
                     <button
-                      onClick={() => { applyColor(hex); setPaletteOpen(false); }}
+                      onClick={() => {
+                        applyColor(hex);
+                        setPaletteOpen(false);
+                      }}
                       style={{
                         ...CIRCLE_BASE,
                         background: hex,
-                        border: isActive ? "2px solid rgba(255,255,255,0.9)" : "2px solid rgba(255,255,255,0.2)",
-                        outline: isActive ? "3px solid rgba(168,85,247,0.7)" : "none",
+                        border: isActive ? "2px solid rgba(255,255,255,0.92)" : "2px solid rgba(255,255,255,0.24)",
+                        outline: isActive ? `3px solid ${hexToRgba(accent, 0.6)}` : "none",
                         outlineOffset: "2px",
                         boxShadow: isActive
-                          ? "0 0 0 4px rgba(168,85,247,0.2), 0 8px 18px rgba(0,0,0,0.4)"
+                          ? `0 0 0 4px ${hexToRgba(accent, 0.18)}, 0 8px 18px rgba(0,0,0,0.34)`
                           : "0 6px 14px rgba(0,0,0,0.35)",
-                        animation: `wardrobe-swatch-in 280ms cubic-bezier(0.34,1.56,0.64,1) both`,
-                        animationDelay: `${i * 60}ms`,
+                        animation: "wardrobe-swatch-in 280ms cubic-bezier(0.34,1.56,0.64,1) both",
+                        animationDelay: `${index * 60}ms`,
                         transition: "transform 150ms ease, box-shadow 150ms ease, outline 150ms ease",
                       }}
                     />
-                    {hoveredId === `swatch-${hex}` && <CircleTooltip light={isDaylight} label={name} />}
+                    {hoveredId === `swatch-${hex}` && <CircleTooltip light={isDayMode} label={name} />}
                   </div>
                 );
               })}
 
-              {/* AI / Custom color wheel — rotating gradient ring */}
-              <div style={{ position: "relative" }}
-                onMouseEnter={() => setHoveredId("ai")}
+              <div
+                style={{ position: "relative" }}
+                onMouseEnter={() => setHoveredId("custom")}
                 onMouseLeave={() => setHoveredId(null)}
               >
                 <div style={{
                   ...CIRCLE_BASE,
                   padding: "2.5px",
-                  background: "conic-gradient(from 0deg, #a855f7, #3b82f6, #06b6d4, #10b981, #f59e0b, #ef4444, #a855f7)",
+                  background: "conic-gradient(from 0deg, #d97745, #7486ff, #0ea5a4, #7ba56b, #d35f7a, #d97745)",
                   animationName: "wardrobe-spin",
-                  animationDuration: colorPickerOpen ? "2s" : "5s",
+                  animationDuration: colorPickerOpen ? "2.4s" : "6s",
                   animationTimingFunction: "linear",
                   animationIterationCount: "infinite",
                 }}>
                   <button
-                    onClick={() => setColorPickerOpen((v) => !v)}
+                    onClick={() => setColorPickerOpen((value) => !value)}
                     style={{
                       ...CIRCLE_BASE,
                       width: "100%",
                       height: "100%",
                       border: "none",
-                      background: colorPickerOpen ? "rgba(30,18,50,0.98)" : "rgba(18,12,30,0.96)",
+                      background: colorPickerOpen ? "rgba(24,18,20,0.98)" : "rgba(16,16,18,0.96)",
                       color: "rgba(255,255,255,0.95)",
-                      boxShadow: colorPickerOpen ? "0 0 16px rgba(168,85,247,0.4)" : "none",
+                      boxShadow: colorPickerOpen ? `0 0 16px ${hexToRgba(accent, 0.4)}` : "none",
                       transition: "background 200ms ease",
                     }}
                   >
                     <Sparkles size={18} strokeWidth={1.75} />
                   </button>
                 </div>
-                {hoveredId === "ai" && <CircleTooltip light={isDaylight} label="Custom Hue" />}
+                {hoveredId === "custom" && <CircleTooltip light={isDayMode} label="Custom Hue" />}
               </div>
             </div>
           )}
 
           {visiblePaletteOpen && colorPickerOpen && (
             <ColorPicker
-              color={activeColor || "#a5b4fc"}
-              onChange={(hex) => { applyColor(hex); }}
+              color={isValidHexColor(activeColor) ? normalizeHex(activeColor) : accent}
+              onChange={applyColor}
               open={colorPickerOpen}
               onOpenChange={setColorPickerOpen}
               anchorRef={paletteButtonRef}
@@ -334,99 +410,57 @@ export default function TabSwitcher({
         </div>
       )}
 
-      {/* ── Outfit ── */}
-      <div style={{
-        position: "relative",
-        opacity: hidingNav ? 0 : 1,
-        transform: hidingNav ? "translateY(-6px) scale(0.86)" : "translateY(0) scale(1)",
-        transition: "opacity 200ms ease, transform 220ms ease",
-        transitionDelay: hidingNav ? "0ms" : "80ms",
-        pointerEvents: hidingNav ? "none" : "auto",
-      }}
-        onMouseEnter={() => setHoveredId("outfit")}
-        onMouseLeave={() => setHoveredId(null)}
-      >
-        <button
-          onClick={() => onTabChange("outfit")}
-          style={{
-            ...CIRCLE_BASE,
-            border: isDaylight
-              ? `2px solid ${activeTab === "outfit" ? "rgba(14,165,233,0.8)" : "rgba(0,0,0,0.12)"}`
-              : `2px solid ${activeTab === "outfit" ? "rgb(99,102,241)" : "rgba(255,255,255,0.1)"}`,
-            background: isDaylight
-              ? activeTab === "outfit"
-                ? "linear-gradient(135deg, rgba(14,165,233,0.2) 0%, rgba(14,165,233,0.08) 100%)"
-                : "rgba(255,255,255,0.72)"
-              : activeTab === "outfit"
-                ? "linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.12) 100%)"
-                : "rgba(255,255,255,0.04)",
-            color: isDaylight
-              ? activeTab === "outfit" ? "#0c4a6e" : "rgba(15,23,42,0.6)"
-              : activeTab === "outfit" ? "#e0e7ff" : "rgba(255,255,255,0.6)",
-            backdropFilter: "blur(8px)",
-            boxShadow: isDaylight
-              ? activeTab === "outfit" ? "0 0 18px rgba(14,165,233,0.22)" : "0 2px 8px rgba(0,0,0,0.08)"
-              : activeTab === "outfit" ? "0 0 20px rgba(99,102,241,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
-            transition: "all 280ms ease",
-          }}
-        >
-          <Paintbrush size={22} strokeWidth={1.75} />
-        </button>
-        {hoveredId === "outfit" && <CircleTooltip light={isDaylight} label="Outfit" />}
-      </div>
+      {navItems.map(({ id, icon: Icon, label }, itemIndex) => {
+        const delay = hidingNav ? `${itemIndex * 40}ms` : `${80 + itemIndex * 40}ms`;
+        const isActive = activeTab === id;
 
-      {/* ── Catalog ── */}
-      <div style={{
-        position: "relative",
-        opacity: hidingNav ? 0 : 1,
-        transform: hidingNav ? "translateY(-6px) scale(0.86)" : "translateY(0) scale(1)",
-        transition: "opacity 200ms ease, transform 220ms ease",
-        transitionDelay: hidingNav ? "40ms" : "120ms",
-        pointerEvents: hidingNav ? "none" : "auto",
-      }}
-        onMouseEnter={() => setHoveredId("catalog")}
-        onMouseLeave={() => setHoveredId(null)}
-      >
-        <button
-          onClick={() => onTabChange("catalog")}
+        return (
+        <div
+          key={id}
           style={{
-            ...CIRCLE_BASE,
-            border: isDaylight
-              ? `2px solid ${activeTab === "catalog" ? "rgba(14,165,233,0.8)" : "rgba(0,0,0,0.12)"}`
-              : `2px solid ${activeTab === "catalog" ? "rgb(99,102,241)" : "rgba(255,255,255,0.1)"}`,
-            background: isDaylight
-              ? activeTab === "catalog"
-                ? "linear-gradient(135deg, rgba(14,165,233,0.2) 0%, rgba(14,165,233,0.08) 100%)"
-                : "rgba(255,255,255,0.72)"
-              : activeTab === "catalog"
-                ? "linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.12) 100%)"
-                : "rgba(255,255,255,0.04)",
-            color: isDaylight
-              ? activeTab === "catalog" ? "#0c4a6e" : "rgba(15,23,42,0.6)"
-              : activeTab === "catalog" ? "#e0e7ff" : "rgba(255,255,255,0.6)",
-            backdropFilter: "blur(8px)",
-            boxShadow: isDaylight
-              ? activeTab === "catalog" ? "0 0 18px rgba(14,165,233,0.22)" : "0 2px 8px rgba(0,0,0,0.08)"
-              : activeTab === "catalog" ? "0 0 20px rgba(99,102,241,0.3)" : "0 2px 8px rgba(0,0,0,0.2)",
-            transition: "all 280ms ease",
+            position: "relative",
+            opacity: hidingNav ? 0 : 1,
+            transform: hidingNav ? "translateY(-6px) scale(0.86)" : "translateY(0) scale(1)",
+            transition: "opacity 200ms ease, transform 220ms ease",
+            transitionDelay: delay,
+            pointerEvents: hidingNav ? "none" : "auto",
           }}
+          onMouseEnter={() => setHoveredId(id)}
+          onMouseLeave={() => setHoveredId(null)}
         >
-          <Library size={22} strokeWidth={1.75} />
-        </button>
-        {hoveredId === "catalog" && <CircleTooltip light={isDaylight} label="Catalog" />}
-      </div>
+          <button onClick={() => onTabChange(id)} style={navButtonStyle(isActive)}>
+            <Icon size={22} strokeWidth={1.75} />
+          </button>
+          {isActive && (
+            <span style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              width: "64px",
+              height: "64px",
+              transform: "translate(-50%, -50%)",
+              borderRadius: "999px",
+              border: `1px solid ${hexToRgba(accent, isDayMode ? 0.24 : 0.3)}`,
+              boxShadow: `0 0 0 1px ${hexToRgba(accent, 0.12)}, 0 0 24px ${hexToRgba(accent, isDayMode ? 0.12 : 0.18)}`,
+              animation: "wardrobe-orbit-pulse 1.8s ease-in-out infinite",
+              pointerEvents: "none",
+            }} />
+          )}
+          {hoveredId === id && <CircleTooltip light={isDayMode} label={label} />}
+        </div>
+      )})}
 
       <div style={{ height: "8px" }} />
 
-      {/* ── Hide / Show panel ── */}
-      <div style={{
-        position: "relative",
-        opacity: hidingNav ? 0 : 1,
-        transform: hidingNav ? "translateY(-6px) scale(0.86)" : "translateY(0) scale(1)",
-        transition: "opacity 200ms ease, transform 220ms ease",
-        transitionDelay: hidingNav ? "80ms" : "160ms",
-        pointerEvents: hidingNav ? "none" : "auto",
-      }}
+      <div
+        style={{
+          position: "relative",
+          opacity: hidingNav ? 0 : 1,
+          transform: hidingNav ? "translateY(-6px) scale(0.86)" : "translateY(0) scale(1)",
+          transition: "opacity 200ms ease, transform 220ms ease",
+          transitionDelay: hidingNav ? "120ms" : "200ms",
+          pointerEvents: hidingNav ? "none" : "auto",
+        }}
         onMouseEnter={() => setHoveredId("toggle")}
         onMouseLeave={() => setHoveredId(null)}
       >
@@ -434,17 +468,17 @@ export default function TabSwitcher({
           onClick={onTogglePanel}
           style={{
             ...CIRCLE_BASE,
-            border: isDaylight ? "2px solid rgba(0,0,0,0.12)" : "2px solid rgba(255,255,255,0.2)",
-            background: isDaylight
+            border: isDayMode ? "2px solid rgba(0,0,0,0.12)" : "2px solid rgba(255,255,255,0.2)",
+            background: isDayMode
               ? panelCollapsed
                 ? "linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.08) 100%)"
                 : "rgba(255,255,255,0.72)"
               : panelCollapsed
                 ? "linear-gradient(135deg, rgba(34,197,94,0.28) 0%, rgba(34,197,94,0.15) 100%)"
-                : "linear-gradient(135deg, rgba(124,136,255,0.2) 0%, rgba(124,136,255,0.1) 100%)",
-            color: isDaylight ? "rgba(15,23,42,0.8)" : "rgba(255,255,255,0.9)",
+                : `linear-gradient(135deg, ${hexToRgba(accent, 0.18)} 0%, ${hexToRgba(accent, 0.08)} 100%)`,
+            color: isDayMode ? "rgba(15,23,42,0.82)" : "rgba(255,255,255,0.9)",
             backdropFilter: "blur(8px)",
-            boxShadow: isDaylight
+            boxShadow: isDayMode
               ? panelCollapsed ? "0 0 14px rgba(34,197,94,0.2)" : "0 2px 8px rgba(0,0,0,0.08)"
               : panelCollapsed ? "0 0 20px rgba(34,197,94,0.25)" : "0 2px 8px rgba(0,0,0,0.2)",
             animation: panelCollapsed ? "wardrobe-glow-pulse 1.2s ease-in-out infinite" : "none",
@@ -453,7 +487,7 @@ export default function TabSwitcher({
         >
           {panelCollapsed ? <PanelLeft size={22} strokeWidth={1.75} /> : <PanelLeftClose size={22} strokeWidth={1.75} />}
         </button>
-        {hoveredId === "toggle" && <CircleTooltip light={isDaylight} label={panelCollapsed ? "Show Panel" : "Hide Panel"} />}
+        {hoveredId === "toggle" && <CircleTooltip light={isDayMode} label={panelCollapsed ? "Show Panel" : "Hide Panel"} />}
       </div>
     </div>
   );

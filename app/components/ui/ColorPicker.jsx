@@ -95,7 +95,16 @@ function generateStylistPalettes(hex) {
   ];
 }
 
-export default function ColorPicker({ color, onChange, open: controlledOpen, onOpenChange, anchorRef: externalAnchorRef }) {
+export default function ColorPicker({
+  color,
+  onChange,
+  open: controlledOpen,
+  onOpenChange,
+  anchorRef: externalAnchorRef,
+  triggerClassName = "h-8 w-8 shrink-0 rounded-xl border border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition hover:scale-105 active:scale-95",
+  triggerStyle,
+  triggerTitle = "Pick color",
+}) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
@@ -178,9 +187,9 @@ export default function ColorPicker({ color, onChange, open: controlledOpen, onO
         <button
           ref={internalTriggerRef}
           onClick={() => setOpen((v) => !v)}
-          title="Pick color"
-          className="h-8 w-8 shrink-0 rounded-xl border border-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition hover:scale-105 active:scale-95"
-          style={{ background: color }}
+          title={triggerTitle}
+          className={triggerClassName}
+          style={{ background: color, ...triggerStyle }}
         />
       )}
 

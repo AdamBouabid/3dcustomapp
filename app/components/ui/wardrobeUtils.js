@@ -1,3 +1,33 @@
+export function isValidHexColor(value) {
+  return typeof value === "string" && /^#?[0-9a-f]{6}$/i.test(value.trim());
+}
+
+export function normalizeHex(hex) {
+  if (typeof hex !== "string") {
+    return "#7c88ff";
+  }
+
+  const value = hex.trim();
+  if (/^#[0-9a-f]{6}$/i.test(value)) {
+    return value;
+  }
+
+  if (/^[0-9a-f]{6}$/i.test(value)) {
+    return `#${value}`;
+  }
+
+  return "#7c88ff";
+}
+
+export function hexToRgba(hex, alpha = 1) {
+  const value = normalizeHex(hex);
+  const intValue = parseInt(value.slice(1), 16);
+  const r = (intValue >> 16) & 255;
+  const g = (intValue >> 8) & 255;
+  const b = intValue & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function toColorFamily(hex) {
   if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) {
     return "neutral";
@@ -37,23 +67,6 @@ export function toColorFamily(hex) {
     return "cool";
   }
   return "neutral";
-}
-
-function normalizeHex(hex) {
-  if (typeof hex !== "string") {
-    return "#7c88ff";
-  }
-
-  const value = hex.trim();
-  if (/^#[0-9a-f]{6}$/i.test(value)) {
-    return value;
-  }
-
-  if (/^[0-9a-f]{6}$/i.test(value)) {
-    return `#${value}`;
-  }
-
-  return "#7c88ff";
 }
 
 function mixHex(baseHex, mixHexValue, amount) {

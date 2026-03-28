@@ -1,5 +1,5 @@
 "use client";
-import React, { Suspense, useMemo, useRef, useEffect } from "react";
+import React, { Suspense, useMemo, useRef, useEffect, useCallback } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
@@ -115,9 +115,23 @@ function ModelPreview({ url, hovered, framing, onReady }) {
   );
 }
 
-export default function MiniModelPreview({ url, category, type, label, hovered = false, color = "#ffffff" }) {
+export default function MiniModelPreview({
+  itemId,
+  url,
+  category,
+  type,
+  label,
+  hovered = false,
+  color = "#ffffff",
+  onReady,
+}) {
   const framing = useMemo(() => getPreviewFraming(category, type, label), [category, type, label]);
   const [isReady, setIsReady] = React.useState(false);
+
+  const handleReady = useCallback(() => {
+    setIsReady(true);
+    onReady?.(itemId, category);
+  }, [category, itemId, onReady]);
 
   return (
     <div className="mini-model-preview" style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -131,12 +145,13 @@ export default function MiniModelPreview({ url, category, type, label, hovered =
         dpr={[1, 1.3]}
         camera={framing.camera}
       >
-        <ambientLight intensity={0.45} color={color} />
-        <directionalLight position={[2.2, 3, 2.6]} intensity={1.15} color={color} />
-        <directionalLight position={[-2, 1.8, -1.8]} intensity={0.5} color={color} />
+        <ambientLight intensity={0.62} color="#fff2e6" />
+        <directionalLight position={[2.2, 3.2, 2.8]} intensity={1.05} color={color} />
+        <directionalLight position={[-2.1, 2.1, -1.9]} intensity={0.46} color="#dcecff" />
+        <pointLight position={[0.3, 1.3, 1.8]} intensity={0.38} color="#fff2db" />
         <Suspense fallback={null}>
-          <Environment preset="studio" />
-          <ModelPreview url={url} hovered={hovered} framing={framing} onReady={() => setIsReady(true)} />
+          <Environment preset="apartment" environmentIntensity={0.9} />
+          <ModelPreview url={url} hovered={hovered} framing={framing} onReady={handleReady} />
         </Suspense>
       </Canvas>
     </div>

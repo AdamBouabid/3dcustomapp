@@ -20,10 +20,11 @@ export default function WardrobeCatalogSection({
   equipSelected,
   unequipSelected,
   toggleCatalogSelection,
-  previewBackdrop = "studio",
+  previewBackdrop = "gallery",
   onPreviewBackdropChange,
   activeCategory = "all",
   onCategoryChange,
+  onPreviewReady,
 }) {
   const [hoveredId, setHoveredId] = useState(null);
   const categories = [
@@ -36,14 +37,14 @@ export default function WardrobeCatalogSection({
   ];
 
   const backdropOptions = [
-    { id: "studio", label: "Studio" },
+    { id: "gallery", label: "Gallery" },
     { id: "transparent", label: "Clear" },
     { id: "gradient", label: "Glow" },
   ];
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="wardrobe-elevated flex flex-wrap items-center gap-1.5 rounded-[1rem] p-2">
+      <div className="wardrobe-elevated wardrobe-toolbar-glass flex flex-wrap items-center gap-1.5 rounded-[1rem] p-2">
         <button
           type="button"
           onClick={toggleSelectionMode}
@@ -115,7 +116,7 @@ export default function WardrobeCatalogSection({
       </div>
 
       {recentItems.length > 0 && (
-        <div className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-2.5 py-2.5">
+        <div className="rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-2.5 py-2.5 animate-[wardrobe-fade-up_320ms_ease_both]">
           <div className="mb-2 flex items-center gap-2 px-1">
             <History size={12} className="text-indigo-200/75" />
             <p className="font-kicker text-[10px] text-white/58">Recently used</p>
@@ -145,7 +146,7 @@ export default function WardrobeCatalogSection({
       )}
 
       <div className="relative mb-1">
-        <div className="wardrobe-elevated sticky top-[10px] z-[50] flex items-center gap-1.5 rounded-[1.2rem] p-2.5 overflow-x-auto custom-scrollbar pb-3 pr-10">
+        <div className="wardrobe-elevated wardrobe-toolbar-glass sticky top-[10px] z-[50] flex items-center gap-1.5 rounded-[1.2rem] p-2.5 overflow-x-auto custom-scrollbar pb-3 pr-10">
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -212,12 +213,14 @@ export default function WardrobeCatalogSection({
                   </label>
                 )}
                 <MiniModelPreview
+                  itemId={id}
                   url={url}
                   category={category}
                   type={type}
                   label={label}
                   hovered={isHovered}
                   color={accent}
+                  onReady={onPreviewReady}
                 />
                 <div className="catalog-card__label" aria-hidden={!isHovered && !isActive && !isSelected}>
                   <span className="catalog-card__label-text">{label}</span>

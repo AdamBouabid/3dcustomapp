@@ -7,7 +7,6 @@ import TabSwitcher from "./TabSwitcher";
 const Scene = dynamic(() => import("../scene/Scene"), { ssr: false });
 
 export default function OutfitRoom({
-  isDark,
   initialCatalogItems,
   wardrobe,
   equip,
@@ -36,11 +35,11 @@ export default function OutfitRoom({
   onCategoryChange,
   scenePreset,
   setScenePreset,
-  applyOutfitTheme,
-  undoOutfit,
-  clearOutfit,
-  activeOutfitMode,
-  wardrobeHistory,
+  advancedActions,
+  roomCustomization,
+  onRoomCustomizationChange,
+  onApplyRoomPreset,
+  onCatalogPreviewReady,
 }) {
   const sceneItems = useMemo(() => {
     if (activeTab === "catalog") {
@@ -65,9 +64,9 @@ export default function OutfitRoom({
         onFocusModeChange={setFocusMode}
         scenePreset={scenePreset}
         onScenePresetChange={setScenePreset}
+        accentColor={roomCustomization?.panelAccent}
       />
       <Sidebar
-        isDark={isDark}
         items={initialCatalogItems}
         wardrobe={wardrobe}
         equip={equip}
@@ -88,11 +87,13 @@ export default function OutfitRoom({
         colorFamily={colorFamily}
         panelCollapsed={panelCollapsed}
         onCategoryChange={onCategoryChange}
-        applyOutfitTheme={applyOutfitTheme}
-        undoOutfit={undoOutfit}
-        clearOutfit={clearOutfit}
-        activeOutfitMode={activeOutfitMode}
-        wardrobeHistory={wardrobeHistory}
+        advancedActions={advancedActions}
+        roomCustomization={roomCustomization}
+        onRoomCustomizationChange={onRoomCustomizationChange}
+        onApplyRoomPreset={onApplyRoomPreset}
+        scenePreset={scenePreset}
+        onScenePresetChange={setScenePreset}
+        onCatalogPreviewReady={onCatalogPreviewReady}
       />
 
       {/* Scene fills the entire container — sidebar floats on top */}
@@ -106,9 +107,10 @@ export default function OutfitRoom({
           autoRotate={false}
           environment="city"
           focusMode={focusMode}
-          showBaseModel={activeTab === "outfit"}
+          showBaseModel={activeTab !== "catalog"}
           enableFocusMode={activeTab === "outfit"}
           scenePreset={scenePreset}
+          roomCustomization={roomCustomization}
         />
       </div>
     </div>

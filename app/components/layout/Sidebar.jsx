@@ -1,19 +1,17 @@
 "use client";
 import React from "react";
 import WardrobePanel from "../ui/WardrobePanel";
+import WardrobeRoomPanel from "../ui/WardrobeRoomPanel";
+
+const PANEL_WIDTH = "clamp(320px, 34vw, 420px)";
 
 export default function Sidebar({
-  isDark,
   items,
   wardrobe,
   equip,
   unequip,
   activeItem,
   setActiveItem,
-  colors,
-  setColor,
-  onLoadOutfit,
-  createSnapshotData,
   activeTab,
   category,
   search,
@@ -24,52 +22,70 @@ export default function Sidebar({
   colorFamily,
   panelCollapsed,
   onCategoryChange,
-  applyOutfitTheme,
-  undoOutfit,
-  clearOutfit,
-  activeOutfitMode,
-  wardrobeHistory,
+  advancedActions,
+  roomCustomization,
+  onRoomCustomizationChange,
+  onApplyRoomPreset,
+  scenePreset,
+  onScenePresetChange,
+  onCatalogPreviewReady,
 }) {
+  const isRoomPanel = activeTab === "room";
+
   return (
-    <aside style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      height: "100%",
-      width: "420px",
-      zIndex: 20,
-      transform: panelCollapsed ? "translateX(-100%)" : "translateX(0)",
-      transition: "transform 220ms cubic-bezier(0.4,0,0.2,1)",
-      padding: panelCollapsed ? 0 : "16px 12px",
-      pointerEvents: panelCollapsed ? "none" : "auto",
-    }}>
-      <WardrobePanel
-        isDark={isDark}
-        items={items}
-        wardrobe={wardrobe}
-        equip={equip}
-        unequip={unequip}
-        activeItem={activeItem}
-        setActiveItem={setActiveItem}
-        colors={colors}
-        setColor={setColor}
-        onLoadOutfit={onLoadOutfit}
-        createSnapshotData={createSnapshotData}
-        activeTab={activeTab}
-        category={category}
-        search={search}
-        equippedOnly={equippedOnly}
-        favoritesOnly={favoritesOnly}
-        topsOnly={topsOnly}
-        recentlyImportedOnly={recentlyImportedOnly}
-        colorFamily={colorFamily}
-        onCategoryChange={onCategoryChange}
-        applyOutfitTheme={applyOutfitTheme}
-        undoOutfit={undoOutfit}
-        clearOutfit={clearOutfit}
-        activeOutfitMode={activeOutfitMode}
-        wardrobeHistory={wardrobeHistory}
-      />
+    <aside
+      className={`sidebar-shell ${isRoomPanel ? "sidebar-shell--room" : "sidebar-shell--wardrobe"}`}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: PANEL_WIDTH,
+        maxWidth: "calc(100vw - 88px)",
+        height: "100%",
+        zIndex: 20,
+        transform: panelCollapsed ? "translateX(calc(-100% - 22px)) scale(0.98)" : "translateX(0) scale(1)",
+        opacity: panelCollapsed ? 0 : 1,
+        transition: "transform 320ms cubic-bezier(0.22,1,0.36,1), opacity 240ms ease",
+        padding: panelCollapsed ? 0 : "16px clamp(10px, 1.5vw, 16px)",
+        willChange: "transform, opacity",
+        pointerEvents: panelCollapsed ? "none" : "auto",
+      }}
+    >
+      <div className="sidebar-shell__halo" />
+      {isRoomPanel ? (
+        <WardrobeRoomPanel
+          roomCustomization={roomCustomization}
+          onRoomCustomizationChange={onRoomCustomizationChange}
+          onApplyRoomPreset={onApplyRoomPreset}
+          scenePreset={scenePreset}
+          onScenePresetChange={onScenePresetChange}
+        />
+      ) : (
+        <WardrobePanel
+          items={items}
+          wardrobe={wardrobe}
+          equip={equip}
+          unequip={unequip}
+          activeItem={activeItem}
+          setActiveItem={setActiveItem}
+          activeTab={activeTab}
+          category={category}
+          search={search}
+          equippedOnly={equippedOnly}
+          favoritesOnly={favoritesOnly}
+          topsOnly={topsOnly}
+          recentlyImportedOnly={recentlyImportedOnly}
+          colorFamily={colorFamily}
+          onCategoryChange={onCategoryChange}
+          advancedActions={advancedActions}
+          roomCustomization={roomCustomization}
+          onRoomCustomizationChange={onRoomCustomizationChange}
+          onApplyRoomPreset={onApplyRoomPreset}
+          scenePreset={scenePreset}
+          onScenePresetChange={onScenePresetChange}
+          onCatalogPreviewReady={onCatalogPreviewReady}
+        />
+      )}
     </aside>
   );
 }

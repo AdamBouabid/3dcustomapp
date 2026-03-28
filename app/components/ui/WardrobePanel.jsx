@@ -1,12 +1,11 @@
 "use client";
 import React, { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import dynamic from "next/dynamic";
-import { Sun, Moon, Briefcase, Shirt, Sparkles, RotateCw, Trash2, Clock3 } from "lucide-react";
 import { profileMark } from "../../utils/perf";
 import WardrobePanelHeader from "./WardrobePanelHeader";
 import WardrobeCatalogSection from "./WardrobeCatalogSection";
 import WardrobeCurrentOutfit from "./WardrobeCurrentOutfit";
-import { toColorFamily } from "./wardrobeUtils";
+import { getPanelTheme } from "./roomCustomizationConfig";
+import { hexToRgba, normalizeHex, toColorFamily } from "./wardrobeUtils";
 
 const FAVORITES_STORAGE_KEY = "wardrobe-favorite-items";
 const FAVORITES_UPDATED_EVENT = "wardrobe-favorites-updated";
@@ -111,34 +110,63 @@ function buildInitialImportRegistry(items) {
   return nextRegistry;
 }
 
-function WardrobePanel({
-  isDark = true,
-  items,
-  isCatalogLoading = false,
-  wardrobe, equip, unequip,
-  activeItem, setActiveItem,
-  colors, setColor,
-  onLoadOutfit,
-  createSnapshotData,
-  activeTab = "outfit",
-  category = "all",
-  search = "",
-  equippedOnly = false,
-  favoritesOnly = false,
-  topsOnly = false,
-  recentlyImportedOnly = false,
-  colorFamily = "all",
-  onToggleSelectionMode,
-  onCategoryChange,
-  applyOutfitTheme,
-  undoOutfit,
-  clearOutfit,
-  activeOutfitMode,
-  wardrobeHistory,
-}) {
+function matchesCatalogCategory(item, selectedCategory) {
+  if (selectedCategory === "all") {
+    return true;
+  }
+
+  const haystack = `${item.label ?? ""} ${item.category ?? ""} ${item.type ?? ""}`.toLowerCase();
+
+  if (selectedCategory === "outfit") {
+    return /(one-piece|dress|gown|outfit)/.test(haystack);
+  }
+
+  if (selectedCategory === "top") {
+    return /(top|shirt|blouse|hoodie|jacket|coat|sweater)/.test(haystack);
+  }
+
+  if (selectedCategory === "bottom") {
+    return /(bottom|pant|trouser|jean|skirt)/.test(haystack);
+  }
+
+  if (selectedCategory === "dress") {
+    return /(dress|one-piece|gown)/.test(haystack);
+  }
+
+  if (selectedCategory === "shoes") {
+    return /(shoe|footwear|heel|boot|sneaker)/.test(haystack);
+  }
+
+  return haystack.includes(selectedCategory.toLowerCase());
+}
+
+function WardrobePanel(props) {
+  const {
+    items,
+    isCatalogLoading = false,
+    wardrobe,
+    equip,
+    unequip,
+    activeItem,
+    setActiveItem,
+    activeTab = "outfit",
+    category = "all",
+    search = "",
+    equippedOnly = false,
+    favoritesOnly = false,
+    topsOnly = false,
+    recentlyImportedOnly = false,
+    colorFamily = "all",
+    onToggleSelectionMode,
+    onCategoryChange,
+    roomCustomization,
+    scenePreset = "gallery-day",
+    onCatalogPreviewReady,
+  } = props;
+
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCatalogIds, setSelectedCatalogIds] = useState([]);
-  const [catalogPreviewBackdrop, setCatalogPreviewBackdrop] = useState("studio");
+  const [catalogPreviewBackdrop, setCatalogPreviewBackdrop] = useState("gallery");
   const favoriteIds = useSyncExternalStore(
     subscribeFavoriteIds,
     getFavoriteIdsSnapshot,
@@ -150,6 +178,24 @@ function WardrobePanel({
   useEffect(() => {
     profileMark("panel-commit");
   }, []);
+
+  const panelTheme = useMemo(() => getPanelTheme(roomCustomization?.panelTheme), [roomCustomization?.panelTheme]);
+  const panelAccent = normalizeHex(roomCustomization?.panelAccent ?? "#7486ff");
+  const panelStyle = useMemo(() => ({
+    "--panel-accent": panelAccent,
+    "--panel-accent-soft": hexToRgba(panelAccent, 0.24),
+    "--panel-accent-ring": hexToRgba(panelAccent, 0.42),
+    "--panel-accent-contrast": hexToRgba(panelAccent, 0.8),
+    "--panel-surface-start": panelTheme.surfaceStart,
+    "--panel-surface-mid": panelTheme.surfaceMid,
+    "--panel-surface-end": panelTheme.surfaceEnd,
+    "--panel-overlay-a": panelTheme.overlayA,
+    "--panel-overlay-b": panelTheme.overlayB,
+    "--panel-border": panelTheme.border,
+    "--panel-rim": panelTheme.rim,
+    "--panel-shadow-color": panelTheme.shadow,
+    "--panel-outline": panelTheme.outline,
+  }), [panelAccent, panelTheme]);
 
   const equippedCount = useMemo(() => {
     return items.filter((item) => Boolean(wardrobe[item.id])).length;
@@ -177,7 +223,7 @@ function WardrobePanel({
     const normalizedQuery = search.trim().toLowerCase();
 
     return items.filter((item) => {
-      if (category !== "all" && item.category !== category) {
+      if (!matchesCatalogCategory(item, category)) {
         return false;
       }
 
@@ -189,7 +235,7 @@ function WardrobePanel({
         return false;
       }
 
-      if (topsOnly && !(item.category || "").toLowerCase().includes("top")) {
+      if (topsOnly && !/(top|shirt|hoodie|jacket|coat|sweater)/.test(`${item.category ?? ""} ${item.type ?? ""}`.toLowerCase())) {
         return false;
       }
 
@@ -209,6 +255,15 @@ function WardrobePanel({
       return haystack.includes(normalizedQuery);
     });
   }, [category, colorFamily, equippedOnly, favoriteSet, favoritesOnly, items, recentlyImportedIdSet, recentlyImportedOnly, search, topsOnly, wardrobe]);
+
+  const metaPills = useMemo(() => {
+    const pillCount = activeTab === "catalog" ? catalogItems.length : equippedCount;
+    return [
+      { label: activeTab === "catalog" ? `${pillCount} visible` : `${pillCount} styled` },
+      { label: roomCustomization?.panelTheme?.replace(/-/g, " ") ?? "obsidian glass" },
+      { label: scenePreset.replace("gallery-", "") },
+    ];
+  }, [activeTab, catalogItems.length, equippedCount, roomCustomization?.panelTheme, scenePreset]);
 
   const selectedCatalogSet = useMemo(() => new Set(selectedCatalogIds), [selectedCatalogIds]);
 
@@ -290,47 +345,54 @@ function WardrobePanel({
   };
 
   return (
-    <aside className="wardrobe-panel-shell relative z-10 flex h-full w-full flex-col gap-3 overflow-y-auto rounded-[2rem] p-4 pb-6 text-white md:p-5 md:pb-8">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 rounded-t-[2rem] bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.28),transparent_65%)]" />
+    <aside className="wardrobe-panel-shell wardrobe-panel-shell--wardrobe wardrobe-shell-in relative z-10 flex h-full w-full flex-col gap-3 overflow-y-auto rounded-[2rem] p-4 pb-6 text-white md:p-5 md:pb-8" style={panelStyle}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 rounded-t-[2rem]" style={{ background: `radial-gradient(ellipse at top, ${hexToRgba(panelAccent, 0.24)}, transparent 68%)` }} />
 
-      <WardrobePanelHeader equippedCount={equippedCount} />
+      <WardrobePanelHeader
+        equippedCount={equippedCount}
+        activeTab={activeTab}
+        scenePreset={scenePreset}
+        metaPills={metaPills}
+      />
 
-      {activeTab === "catalog" ? (
-        <WardrobeCatalogSection
-          catalogItems={catalogItems}
-          isCatalogLoading={isCatalogLoading}
-          recentItems={recentItems}
-          activeItem={activeItem}
-          setActiveItem={setActiveItem}
-          wardrobe={wardrobe}
-          colors={colors}
-          favoriteSet={favoriteSet}
-          selectionMode={selectionMode}
-          selectedCatalogSet={selectedCatalogSet}
-          selectedCatalogIds={selectedCatalogIds}
-          toggleSelectionMode={toggleSelectionMode}
-          selectAllVisible={selectAllVisible}
-          clearSelection={clearSelection}
-          equipSelected={equipSelected}
-          unequipSelected={unequipSelected}
-          toggleCatalogSelection={toggleCatalogSelection}
-          previewBackdrop={catalogPreviewBackdrop}
-          onPreviewBackdropChange={setCatalogPreviewBackdrop}
-          activeCategory={category}
-          onCategoryChange={onCategoryChange}
-        />
-      ) : (
-        <WardrobeCurrentOutfit
-          items={items}
-          wardrobe={wardrobe}
-          activeItem={activeItem}
-          setActiveItem={setActiveItem}
-          favoriteSet={favoriteSet}
-          handleEquip={handleEquip}
-          handleUnequip={handleUnequip}
-          toggleFavorite={toggleFavorite}
-        />
-      )}
+      <div key={activeTab} className={`wardrobe-content-stage wardrobe-content-stage--${activeTab} wardrobe-fade-up flex flex-1 flex-col`}>
+        {activeTab === "catalog" ? (
+          <WardrobeCatalogSection
+            catalogItems={catalogItems}
+            isCatalogLoading={isCatalogLoading}
+            recentItems={recentItems}
+            activeItem={activeItem}
+            setActiveItem={setActiveItem}
+            selectionMode={selectionMode}
+            selectedCatalogSet={selectedCatalogSet}
+            selectedCatalogIds={selectedCatalogIds}
+            toggleSelectionMode={toggleSelectionMode}
+            selectAllVisible={selectAllVisible}
+            clearSelection={clearSelection}
+            equipSelected={equipSelected}
+            unequipSelected={unequipSelected}
+            toggleCatalogSelection={toggleCatalogSelection}
+            previewBackdrop={catalogPreviewBackdrop}
+            onPreviewBackdropChange={setCatalogPreviewBackdrop}
+            activeCategory={category}
+            onCategoryChange={onCategoryChange}
+            onPreviewReady={onCatalogPreviewReady}
+          />
+        ) : (
+          <WardrobeCurrentOutfit
+            items={items}
+            wardrobe={wardrobe}
+            activeItem={activeItem}
+            setActiveItem={setActiveItem}
+            favoriteSet={favoriteSet}
+            handleEquip={handleEquip}
+            handleUnequip={handleUnequip}
+            toggleFavorite={toggleFavorite}
+            accentColor={panelAccent}
+            glowColor={roomCustomization?.windowColor}
+          />
+        )}
+      </div>
     </aside>
   );
 }
