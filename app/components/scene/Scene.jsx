@@ -469,7 +469,7 @@ function ModelScene({ url, color }) {
   return <primitive object={cloned} />;
 }
 
-function RoomDecor({ preset, trimColor, accentWallColor, floorColor, sceneProfile, roomCustomization }) {
+function RoomDecor({ preset, trimColor, accentWallColor, floorColor, sceneProfile, roomCustomization, decorPlacements = {} }) {
   const artImage = roomCustomization?.artImage;
   const artSet = preset === "sunlit-loft"
     ? ["#d9c5a3", "#c6d9d1", "#f1dbc0"]
@@ -493,11 +493,275 @@ function RoomDecor({ preset, trimColor, accentWallColor, floorColor, sceneProfil
       <Planter position={[-4.18, -0.98, -2.84]} potColor={trimColor} leafColor={accentWallColor} />
       <Planter position={[4.18, -0.98, -2.84]} potColor={trimColor} leafColor={accentWallColor} />
       {preset === "townhouse-nook" && <ConsoleTable position={[0, -0.98, -3.66]} woodColor={trimColor} accentColor={accentWallColor} />}
+
+      {/* User-placed decor items */}
+      <UserDecorItems decorPlacements={decorPlacements} trimColor={trimColor} accentWallColor={accentWallColor} floorColor={floorColor} sceneProfile={sceneProfile} />
     </group>
   );
 }
 
-function InteriorShell({ roomCustomization, sceneProfile }) {
+/* ── User-placed decor objects ──────────────────────────────────────────── */
+
+const SPOT_POSITIONS = {
+  "left-back":    [-3.6, -0.98, -3.2],
+  "center-back":  [0,    -0.98, -3.6],
+  "right-back":   [3.6,  -0.98, -3.2],
+  "left-front":   [-3.2, -0.98,  2.4],
+  "center-front": [0,    -0.98,  2.8],
+  "right-front":  [3.2,  -0.98,  2.4],
+};
+
+/* ── Material property lookup ───────────────────────────────────────────── */
+function matProps(material) {
+  switch (material) {
+    case "metal":   return { roughness: 0.22, metalness: 0.82 };
+    case "marble":  return { roughness: 0.28, metalness: 0.06 };
+    case "glass":   return { roughness: 0.08, metalness: 0.12, transparent: true, opacity: 0.5 };
+    case "fabric":  return { roughness: 0.92, metalness: 0.0 };
+    case "ceramic": return { roughness: 0.42, metalness: 0.14 };
+    case "wood":
+    default:        return { roughness: 0.58, metalness: 0.04 };
+  }
+}
+
+function DecorVase({ position, color, material }) {
+  const ref = useRef(null);
+  const mp = matProps(material);
+  useFrame((state, delta) => {
+    if (!ref.current) return;
+    ref.current.rotation.y = THREE.MathUtils.damp(ref.current.rotation.y, Math.sin(state.clock.elapsedTime * 0.3 + position[0]) * 0.08, 3, delta);
+  });
+  return (
+    <group ref={ref} position={position}>
+      <mesh castShadow receiveShadow position={[0, 0.32, 0]}>
+        <cylinderGeometry args={[0.14, 0.2, 0.62, 16]} />
+        <AnimatedStandardMaterial color={color} {...mp} />
+      </mesh>
+      <mesh castShadow position={[0, 0.68, 0]}>
+        <cylinderGeometry args={[0.18, 0.14, 0.12, 16]} />
+        <AnimatedStandardMaterial color={color} {...mp} />
+      </mesh>
+    </group>
+  );
+}
+
+function DecorLamp({ position, color, material, glowColor = "#fff4dc" }) {
+  const mp = matProps(material);
+  return (
+    <group position={position}>
+      <mesh castShadow receiveShadow position={[0, 0.18, 0]}>
+        <cylinderGeometry args={[0.06, 0.12, 0.36, 12]} />
+        <AnimatedStandardMaterial color="#3d3630" roughness={0.48} metalness={0.12} />
+      </mesh>
+      <mesh castShadow position={[0, 0.52, 0]}>
+        <cylinderGeometry args={[0.22, 0.16, 0.42, 16]} />
+        <AnimatedStandardMaterial color={color} {...mp} transparent opacity={0.85} />
+      </mesh>
+      <pointLight position={[0, 0.62, 0]} intensity={0.6} distance={3.2} color={glowColor} />
+    </group>
+  );
+}
+
+function DecorChair({ position, color, material }) {
+  const mp = matProps(material);
+  const frameMp = matProps("wood");
+  return (
+    <group position={position}>
+      <RoomSurface args={[0.72, 0.14, 0.68]} position={[0, 0.24, 0]} color={color} {...mp} />
+      <RoomSurface args={[0.68, 0.56, 0.08]} position={[0, 0.56, -0.3]} color={color} {...mp} />
+      <RoomSurface args={[0.08, 0.48, 0.08]} position={[-0.3, 0.02, -0.28]} color="#3d3630" {...frameMp} />
+      <RoomSurface args={[0.08, 0.48, 0.08]} position={[0.3,  0.02, -0.28]} color="#3d3630" {...frameMp} />
+      <RoomSurface args={[0.08, 0.28, 0.08]} position={[-0.3, 0.02,  0.28]} color="#3d3630" {...frameMp} />
+      <RoomSurface args={[0.08, 0.28, 0.08]} position={[0.3,  0.02,  0.28]} color="#3d3630" {...frameMp} />
+    </group>
+  );
+}
+
+function DecorCoffeeTable({ position, color, material }) {
+  const mp = matProps(material);
+  return (
+    <group position={position}>
+      <RoomSurface args={[1.1, 0.08, 0.56]} position={[0, 0.32, 0]} color={color} {...mp} />
+      <RoomSurface args={[0.08, 0.52, 0.08]} position={[-0.44, 0.04, -0.2]} color={color} {...mp} />
+      <RoomSurface args={[0.08, 0.52, 0.08]} position={[0.44,  0.04, -0.2]} color={color} {...mp} />
+      <RoomSurface args={[0.08, 0.52, 0.08]} position={[-0.44, 0.04,  0.2]} color={color} {...mp} />
+      <RoomSurface args={[0.08, 0.52, 0.08]} position={[0.44,  0.04,  0.2]} color={color} {...mp} />
+    </group>
+  );
+}
+
+function DecorBookshelf({ position, color, material }) {
+  const mp = matProps(material);
+  return (
+    <group position={position}>
+      {/* Frame */}
+      <RoomSurface args={[0.8, 1.4, 0.28]} position={[0, 0.72, 0]} color={color} {...mp} />
+      {/* Shelves */}
+      {[0.18, 0.52, 0.88, 1.22].map((y, i) => (
+        <RoomSurface key={i} args={[0.72, 0.04, 0.24]} position={[0, y, 0]} color={color} {...mp} />
+      ))}
+      {/* Books */}
+      <mesh castShadow position={[-0.18, 0.35, 0]}>
+        <boxGeometry args={[0.06, 0.28, 0.16]} />
+        <AnimatedStandardMaterial color="#8b4513" roughness={0.6} metalness={0.02} />
+      </mesh>
+      <mesh castShadow position={[-0.06, 0.35, 0]}>
+        <boxGeometry args={[0.06, 0.24, 0.16]} />
+        <AnimatedStandardMaterial color="#1a5276" roughness={0.6} metalness={0.02} />
+      </mesh>
+      <mesh castShadow position={[0.08, 0.35, 0]}>
+        <boxGeometry args={[0.06, 0.26, 0.16]} />
+        <AnimatedStandardMaterial color="#196f3d" roughness={0.6} metalness={0.02} />
+      </mesh>
+    </group>
+  );
+}
+
+function DecorCandelabra({ position, color, material }) {
+  const mp = matProps(material);
+  return (
+    <group position={position}>
+      <mesh castShadow receiveShadow position={[0, 0.14, 0]}>
+        <cylinderGeometry args={[0.12, 0.16, 0.28, 12]} />
+        <AnimatedStandardMaterial color={color} {...mp} />
+      </mesh>
+      <mesh castShadow position={[0, 0.44, 0]}>
+        <cylinderGeometry args={[0.03, 0.04, 0.36, 8]} />
+        <AnimatedStandardMaterial color={color} {...mp} />
+      </mesh>
+      {/* Arms */}
+      {[-0.14, 0, 0.14].map((x, i) => (
+        <group key={i} position={[x, 0.62, 0]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.015, 0.02, 0.08, 6]} />
+            <AnimatedStandardMaterial color={color} {...mp} />
+          </mesh>
+          <pointLight position={[0, 0.08, 0]} intensity={0.2} distance={1.4} color="#ffe4b5" />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function DecorSculpture({ position, color, material }) {
+  const mp = matProps(material);
+  return (
+    <group position={position}>
+      <mesh castShadow receiveShadow position={[0, 0.12, 0]}>
+        <cylinderGeometry args={[0.16, 0.18, 0.24, 8]} />
+        <AnimatedStandardMaterial color="#e0d8cf" roughness={0.3} metalness={0.04} />
+      </mesh>
+      <mesh castShadow position={[0, 0.5, 0]} rotation={[0.1, 0.3, 0]}>
+        <dodecahedronGeometry args={[0.2, 0]} />
+        <AnimatedStandardMaterial color={color} {...mp} />
+      </mesh>
+    </group>
+  );
+}
+
+function DecorRug({ position, color, material }) {
+  const mp = matProps(material === "fabric" ? "fabric" : "fabric");
+  return (
+    <mesh position={[position[0], position[1] + 0.01, position[2]]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <planeGeometry args={[1.8, 1.2]} />
+      <AnimatedStandardMaterial color={color} {...mp} />
+    </mesh>
+  );
+}
+
+function DecorCushion({ position, color, material }) {
+  const mp = matProps(material);
+  return (
+    <mesh castShadow receiveShadow position={[position[0], position[1] + 0.14, position[2]]}>
+      <sphereGeometry args={[0.22, 12, 8]} />
+      <AnimatedStandardMaterial color={color} {...mp} />
+    </mesh>
+  );
+}
+
+function DecorRadio({ position, color, material }) {
+  const mp = matProps(material);
+  const ref = useRef(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.scale.y = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.01;
+  });
+  return (
+    <group ref={ref} position={position}>
+      {/* Body */}
+      <mesh castShadow receiveShadow position={[0, 0.14, 0]}>
+        <boxGeometry args={[0.36, 0.26, 0.18]} />
+        <AnimatedStandardMaterial color={color} {...mp} />
+      </mesh>
+      {/* Speaker grille */}
+      <mesh position={[0, 0.14, 0.092]}>
+        <planeGeometry args={[0.24, 0.16]} />
+        <AnimatedStandardMaterial color="#1a1a1a" roughness={0.8} metalness={0.05} />
+      </mesh>
+      {/* Dial */}
+      <mesh castShadow position={[0.12, 0.22, 0.092]}>
+        <cylinderGeometry args={[0.025, 0.025, 0.02, 12]} rotation={[Math.PI / 2, 0, 0]} />
+        <AnimatedStandardMaterial color="#d4a843" roughness={0.3} metalness={0.7} />
+      </mesh>
+      {/* Antenna */}
+      <mesh castShadow position={[0.14, 0.42, -0.04]} rotation={[0, 0, -0.15]}>
+        <cylinderGeometry args={[0.006, 0.006, 0.34, 6]} />
+        <AnimatedStandardMaterial color="#888" roughness={0.3} metalness={0.8} />
+      </mesh>
+      {/* Music indicator glow */}
+      <pointLight position={[0, 0.18, 0.14]} intensity={0.15} distance={0.8} color="#4a90d9" />
+    </group>
+  );
+}
+
+function UserDecorItems({ decorPlacements, trimColor, accentWallColor, floorColor, sceneProfile }) {
+  const entries = Object.entries(decorPlacements);
+  if (entries.length === 0) return null;
+
+  return (
+    <group>
+      {entries.map(([spotId, data]) => {
+        const pos = SPOT_POSITIONS[spotId];
+        if (!pos || !data) return null;
+
+        const itemId = typeof data === "string" ? data : data.item;
+        const color = data.color ?? "#c9a87c";
+        const material = data.material ?? "wood";
+
+        switch (itemId) {
+          case "tall-vase":
+            return <DecorVase key={spotId} position={pos} color={color} material={material} />;
+          case "table-lamp":
+            return <DecorLamp key={spotId} position={pos} color={color} material={material} glowColor={sceneProfile.accentGlow} />;
+          case "armchair":
+            return <DecorChair key={spotId} position={pos} color={color} material={material} />;
+          case "wall-art":
+            return <WallFrame key={spotId} position={[pos[0], 1.68, pos[2] < 0 ? -4.34 : pos[2]]} frameColor={color} artColor="#b7c8d9" glowColor={sceneProfile.accentGlow} />;
+          case "plant":
+            return <Planter key={spotId} position={pos} potColor={color} leafColor={accentWallColor} />;
+          case "coffee-table":
+            return <DecorCoffeeTable key={spotId} position={pos} color={color} material={material} />;
+          case "bookshelf":
+            return <DecorBookshelf key={spotId} position={pos} color={color} material={material} />;
+          case "candelabra":
+            return <DecorCandelabra key={spotId} position={pos} color={color} material={material} />;
+          case "sculpture":
+            return <DecorSculpture key={spotId} position={pos} color={color} material={material} />;
+          case "rug":
+            return <DecorRug key={spotId} position={pos} color={color} material={material} />;
+          case "floor-cushion":
+            return <DecorCushion key={spotId} position={pos} color={color} material={material} />;
+          case "jazz-radio":
+            return <DecorRadio key={spotId} position={pos} color={color} material={material} />;
+          default:
+            return null;
+        }
+      })}
+    </group>
+  );
+}
+
+function InteriorShell({ roomCustomization, sceneProfile, decorPlacements }) {
   const wallColor = roomCustomization.wallColor;
   const accentWallColor = roomCustomization.accentWallColor;
   const trimColor = roomCustomization.trimColor;
@@ -539,6 +803,7 @@ function InteriorShell({ roomCustomization, sceneProfile }) {
         floorColor={floorColor}
         sceneProfile={sceneProfile}
         roomCustomization={roomCustomization}
+        decorPlacements={decorPlacements}
       />
     </group>
   );
@@ -557,6 +822,7 @@ export default function Scene({
   enableFocusMode = true,
   scenePreset = "gallery-day",
   roomCustomization = DEFAULT_ROOM_CUSTOMIZATION,
+  decorPlacements = {},
 }) {
   const sceneProfile = getSceneProfile(scenePreset);
   const cameraPosition = [0.22, 1.15, 3.65];
@@ -627,7 +893,7 @@ export default function Scene({
 
         <Suspense fallback={null}>
           <Environment preset={sceneProfile.env} background={false} environmentIntensity={sceneProfile.envIntensity} />
-          <InteriorShell roomCustomization={roomCustomization} sceneProfile={sceneProfile} />
+          <InteriorShell roomCustomization={roomCustomization} sceneProfile={sceneProfile} decorPlacements={decorPlacements} />
           <ContactShadows
             position={[0, -0.99, 0]}
             opacity={sceneProfile.shadowOpacity}
