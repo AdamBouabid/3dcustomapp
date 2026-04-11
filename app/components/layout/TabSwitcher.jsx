@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { Flower2, Home, Moon, Paintbrush, Palette, PanelLeft, PanelLeftClose, Sparkles, Sun } from "lucide-react";
 import ColorPicker from "../ui/ColorPicker";
 import { hexToRgba, isValidHexColor, normalizeHex } from "../ui/wardrobeUtils";
@@ -99,6 +99,23 @@ export default function TabSwitcher({
     return [];
   });
   const paletteButtonRef = useRef(null);
+
+  // Keyboard shortcut: "F" toggles focus mode when outfit tab is active
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = (e) => {
+      if (e.key === "f" || e.key === "F") {
+        // Don't trigger if user is typing in an input
+        const tag = document.activeElement?.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (activeTab === "outfit") {
+          onFocusModeChange?.(!focusMode);
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [activeTab, focusMode, onFocusModeChange]);
 
   const paletteVisible = !panelCollapsed && activeTab === "outfit" && activeOutfitPanel === "outfit" && !!activeItem;
   const visiblePaletteOpen = paletteVisible && paletteOpen;

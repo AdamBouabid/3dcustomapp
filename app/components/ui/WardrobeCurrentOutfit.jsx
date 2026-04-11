@@ -259,7 +259,7 @@ export default function WardrobeCurrentOutfit({
                     ? `0 8px 26px ${hexToRgba(panelAccent, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.08)`
                     : `0 8px 18px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05)`,
                 }}
-                aria-selected={isActive}
+                aria-current={isActive ? "true" : undefined}
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveItem(id); } }}
               >
@@ -278,15 +278,20 @@ export default function WardrobeCurrentOutfit({
                 </div>
 
                 {/* Item label */}
-                <div className="flex-1 text-left text-[11px] font-semibold uppercase tracking-wide text-white/70 px-1">
+                <div className="flex-1 text-left text-[11px] font-semibold uppercase tracking-wide text-white/70 px-1 truncate">
                   {label}
-                  {isEquipped && (
-                    <span className="ml-1.5 wardrobe-status-equipped">Equipped</span>
-                  )}
                 </div>
 
-                {/* Right-side actions */}
-                <div className="flex items-center gap-1" role="group" aria-label={`Actions for ${label}`}>
+                {/* Right-side status + actions */}
+                <div className="flex items-center gap-1.5">
+                  {isEquipped ? (
+                    <span className="wardrobe-status-equipped" aria-label="Currently equipped">Equipped</span>
+                  ) : (
+                    <span className="wardrobe-status-available" aria-label="Not equipped">
+                      <span aria-hidden="true">+</span> Add
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1" role="group" aria-label={`Actions for ${label}`}>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(id); }}
                     className="flex h-7 w-7 items-center justify-center rounded-[0.7rem] border transition-all"
@@ -323,6 +328,7 @@ export default function WardrobeCurrentOutfit({
                     </button>
                   )}
                 </div>
+              </div>
 
                 {/* Active left accent bar */}
                 {isActive && (
