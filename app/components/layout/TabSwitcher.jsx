@@ -104,7 +104,7 @@ export default function TabSwitcher({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const handler = (e) => {
-      if (e.key === "f" || e.key === "F") {
+      if ((e.key === "f" || e.key === "F") && !e.ctrlKey && !e.metaKey && !e.altKey) {
         // Don't trigger if user is typing in an input
         const tag = document.activeElement?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;

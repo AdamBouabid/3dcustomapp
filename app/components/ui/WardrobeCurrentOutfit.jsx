@@ -159,7 +159,7 @@ export default function WardrobeCurrentOutfit({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search items…"
-            className="wardrobe-input w-full rounded-[1rem] border border-white/10 bg-white/[0.04] py-2 pl-8 pr-3 text-[11px] text-white placeholder:text-white/[0.28] focus-visible:outline-none"
+            className="wardrobe-input w-full rounded-[1rem] border border-white/10 bg-white/[0.04] py-2 pl-8 pr-3 text-[11px] text-white placeholder:text-white/[0.28] focus-visible:ring-2 focus-visible:ring-[--panel-accent,#7486ff] focus-visible:ring-offset-1 focus-visible:ring-offset-transparent focus-visible:outline-none"
             aria-label="Search wardrobe items"
           />
           {searchQuery && (
@@ -259,6 +259,7 @@ export default function WardrobeCurrentOutfit({
                     ? `0 8px 26px ${hexToRgba(panelAccent, 0.18)}, inset 0 1px 0 rgba(255,255,255,0.08)`
                     : `0 8px 18px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.05)`,
                 }}
+                aria-label={`Select ${label}`}
                 aria-current={isActive ? "true" : undefined}
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveItem(id); } }}
@@ -278,7 +279,7 @@ export default function WardrobeCurrentOutfit({
                 </div>
 
                 {/* Item label */}
-                <div className="flex-1 text-left text-[11px] font-semibold uppercase tracking-wide text-white/70 px-1 truncate">
+                <div className="flex-1 text-left text-[11px] font-semibold uppercase tracking-wide text-white/70 px-1 truncate" title={label}>
                   {label}
                 </div>
 
