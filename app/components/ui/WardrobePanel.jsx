@@ -79,6 +79,7 @@ function WardrobePanel(props) {
     setActiveItem,
     roomCustomization,
     scenePreset = "gallery-day",
+    advancedActions,
   } = props;
 
   const favoriteIds = useSyncExternalStore(
@@ -170,6 +171,7 @@ function WardrobePanel(props) {
           toggleFavorite={toggleFavorite}
           accentColor={panelAccent}
           glowColor={roomCustomization?.windowColor}
+          advancedActions={advancedActions}
         />
       </div>
     </aside>

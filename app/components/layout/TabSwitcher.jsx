@@ -229,6 +229,8 @@ export default function TabSwitcher({
       >
         <button
           onClick={() => onScenePresetChange?.(scenePreset === "gallery-evening" ? "gallery-day" : "gallery-evening")}
+          aria-label={scenePreset === "gallery-evening" ? "Switch to Day Room" : "Switch to Evening Room"}
+          title={scenePreset === "gallery-evening" ? "Switch to Day Room" : "Switch to Evening Room"}
           style={{
             ...CIRCLE_BASE,
             border: scenePreset === "gallery-evening"
@@ -267,6 +269,9 @@ export default function TabSwitcher({
         >
           <button
             onClick={() => onFocusModeChange?.(!focusMode)}
+            aria-label={focusMode ? "Exit Focus Mode (F)" : "Enter Focus Mode (F)"}
+            aria-pressed={focusMode}
+            title={focusMode ? "Exit Focus Mode (F)" : "Enter Focus Mode (F)"}
             style={{
               ...CIRCLE_BASE,
               border: isDayMode
@@ -287,9 +292,11 @@ export default function TabSwitcher({
                 : focusMode ? `0 0 24px ${hexToRgba(accent, 0.42)}` : "0 2px 10px rgba(0,0,0,0.3)",
             }}
           >
+            {focusMode && <span className="focus-mode-ring" aria-hidden="true" />}
             <Sparkles size={22} strokeWidth={1.75} />
           </button>
-          {hoveredId === "focus" && <CircleTooltip light={isDayMode} label={focusMode ? "Exit Focus" : "Focus Mode"} />}
+          {focusMode && <span className="focus-mode-badge" aria-hidden="true">FOCUS</span>}
+          {hoveredId === "focus" && <CircleTooltip light={isDayMode} label={focusMode ? "Exit Focus (F)" : "Focus Mode (F)"} />}
         </div>
       )}
 
@@ -444,6 +451,9 @@ export default function TabSwitcher({
               }
             }}
             style={navButtonStyle(isActive)}
+            aria-label={label}
+            aria-pressed={isActive}
+            title={label}
           >
             <Icon size={22} strokeWidth={1.75} />
           </button>
@@ -498,6 +508,8 @@ export default function TabSwitcher({
                   transition: "all 220ms ease",
                 }}
                 title="Beauty Center"
+                aria-label="Beauty Center"
+                aria-pressed={activeOutfitPanel === "beauty"}
               >
                 <Palette size={16} strokeWidth={1.8} />
               </button>
@@ -539,6 +551,8 @@ export default function TabSwitcher({
       >
         <button
           onClick={onTogglePanel}
+          aria-label={panelCollapsed ? "Show Panel" : "Hide Panel"}
+          title={panelCollapsed ? "Show Panel" : "Hide Panel"}
           style={{
             ...CIRCLE_BASE,
             border: isDayMode ? "2px solid rgba(0,0,0,0.12)" : "2px solid rgba(255,255,255,0.2)",

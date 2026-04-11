@@ -3317,3 +3317,79 @@ h4 {
     width: min(280px, calc(100vw - 32px));
   }
 }
+
+/* ── Skeleton loader ──────────────────────────────────────────────────────── */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-loader {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+.skeleton-item {
+  height: 64px;
+  border-radius: 2rem;
+}
+
+/* ── Focus mode ring indicator ─────────────────────────────────────────── */
+@keyframes focus-ring-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); box-shadow: 0 0 0 3px rgba(116,134,255,0.3), 0 0 16px rgba(116,134,255,0.2); }
+}
+
+.focus-mode-ring {
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2px solid rgba(116, 134, 255, 0.6);
+  animation: focus-ring-pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.focus-mode-badge {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(116, 134, 255, 0.9);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Mobile responsive improvements ───────────────────────────────────── */
+@media (max-width: 640px) {
+  .wardrobe-panel-shell {
+    border-radius: 1.4rem;
+  }
+
+  .wardrobe-motion-list > div {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .sidebar-shell {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* ── Screen reader only ─────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
