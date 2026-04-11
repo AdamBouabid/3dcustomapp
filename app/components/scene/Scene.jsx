@@ -1,10 +1,12 @@
-"use client";
-import React, { Suspense, useEffect, useMemo, useRef } from "react";
+﻿"use client";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { gsap } from "gsap";
 import { DEFAULT_ROOM_CUSTOMIZATION } from "../ui/roomCustomizationConfig";
+import { DEFAULT_MODEL_APPEARANCE } from "../ui/modelAppearanceConfig";
+import { clampDecorPosition, createDecorPlacement, isWallDecorItem, normalizeDecorPlacements } from "../ui/DecorPanel";
 
 const ROOM_DIMENSIONS = {
   width: 10.8,
@@ -79,6 +81,66 @@ const SCENE_PROFILES = {
   },
 };
 
+const BASE_APPEARANCE_RULES = [
+  { key: "skinColor", matcher: /body|legs|arms|ears|facedetails/ },
+  { key: "lipColor", matcher: /lips/ },
+  { key: "nailColor", matcher: /fingernails|toenails/ },
+  { key: "hairColor", matcher: /hair/ },
+  { key: "eyeColor", matcher: /irises/ },
+];
+
+function getBaseAppearanceKey(meshName, materialName) {
+  const target = `${meshName} ${materialName}`.toLowerCase();
+  const match = BASE_APPEARANCE_RULES.find((rule) => rule.matcher.test(target));
+  return match?.key ?? null;
+}
+
+function cloneChildMaterials(child) {
+  if (!child?.material) {
+    return;
+  }
+
+  child.material = Array.isArray(child.material)
+    ? child.material.map((material) => material?.clone?.() ?? material)
+    : child.material.clone();
+}
+
+function applyAppearanceMaterial(material, key, appearance) {
+  const nextColor = appearance?.[key];
+  if (!material?.color || !nextColor) {
+    return;
+  }
+
+  material.color.set(nextColor);
+
+  if (key === "skinColor") {
+    material.roughness = 0.68;
+    material.metalness = 0.02;
+  }
+
+  if (key === "hairColor") {
+    material.roughness = 0.74;
+    material.metalness = 0.03;
+  }
+
+  if (key === "nailColor") {
+    material.roughness = 0.24;
+    material.metalness = 0.08;
+  }
+
+  if (key === "lipColor") {
+    material.roughness = 0.36;
+    material.metalness = 0.02;
+  }
+
+  if (key === "eyeColor") {
+    material.roughness = 0.18;
+    material.metalness = 0.08;
+  }
+
+  material.needsUpdate = true;
+}
+
 function pseudoRandom(seed) {
   const value = Math.sin(seed) * 43758.5453123;
   return value - Math.floor(value);
@@ -92,7 +154,7 @@ function getSceneProfile(preset) {
   return SCENE_PROFILES[preset] ?? SCENE_PROFILES["gallery-day"];
 }
 
-function CameraController({ focusMode, activeItem, itemsData }) {
+function CameraController({ focusMode, activeItem, itemsData, modelFocusTarget = null }) {
   const { camera, controls } = useThree();
 
   useEffect(() => {
@@ -103,7 +165,29 @@ function CameraController({ focusMode, activeItem, itemsData }) {
     let distance = 3.65;
     let lookAtY = 1.0;
 
-    if (focusMode && activeItem) {
+    if (modelFocusTarget) {
+      if (modelFocusTarget === "hairColor") {
+        targetX = 0.18;
+        targetY = 1.58;
+        distance = 1.72;
+        lookAtY = 1.48;
+      } else if (modelFocusTarget === "eyeColor" || modelFocusTarget === "lipColor") {
+        targetX = 0.2;
+        targetY = 1.44;
+        distance = 1.58;
+        lookAtY = 1.36;
+      } else if (modelFocusTarget === "nailColor") {
+        targetX = 0.42;
+        targetY = 0.9;
+        distance = 1.86;
+        lookAtY = 0.84;
+      } else if (modelFocusTarget === "skinColor") {
+        targetX = 0.24;
+        targetY = 1.08;
+        distance = 2.02;
+        lookAtY = 1.02;
+      }
+    } else if (focusMode && activeItem) {
       const item = itemsData.find((entry) => entry.id === activeItem);
       const category = `${item?.category ?? ""} ${item?.type ?? ""}`.toLowerCase();
 
@@ -145,7 +229,7 @@ function CameraController({ focusMode, activeItem, itemsData }) {
       ease: "power3.inOut",
       onUpdate: () => controls.update(),
     });
-  }, [activeItem, camera, controls, focusMode, itemsData]);
+  }, [activeItem, camera, controls, focusMode, itemsData, modelFocusTarget]);
 
   return null;
 }
@@ -231,10 +315,19 @@ function RoomSurface({
 function WindowFeature({ position, rotation, tintColor, glowStrength, frameColor }) {
   const beamRef = useRef(null);
   const beamRefSecondary = useRef(null);
+  const glowPanelRef = useRef(null);
+  const glassRefs = useRef([]);
   const tint = useMemo(() => new THREE.Color(tintColor), [tintColor]);
+  const paneConfigs = useMemo(() => ([
+    { key: "upper-left", position: [-0.46, 0.5, 0.11], size: [0.68, 1.42] },
+    { key: "upper-right", position: [0.46, 0.5, 0.11], size: [0.68, 1.42] },
+    { key: "lower-left", position: [-0.46, -0.86, 0.11], size: [0.68, 1.1] },
+    { key: "lower-right", position: [0.46, -0.86, 0.11], size: [0.68, 1.1] },
+  ]), []);
 
   useFrame((state, delta) => {
-    const pulse = 0.12 + Math.sin(state.clock.elapsedTime * 0.9) * 0.02;
+    const pulse = 0.14 + Math.sin(state.clock.elapsedTime * 0.9) * 0.025;
+    const glowPulse = 0.16 + Math.sin(state.clock.elapsedTime * 1.1) * 0.03;
 
     if (beamRef.current) {
       beamRef.current.material.color.lerp(tint, dampFactor(4, delta));
@@ -243,36 +336,92 @@ function WindowFeature({ position, rotation, tintColor, glowStrength, frameColor
 
     if (beamRefSecondary.current) {
       beamRefSecondary.current.material.color.lerp(tint, dampFactor(4, delta));
-      beamRefSecondary.current.material.opacity = THREE.MathUtils.damp(beamRefSecondary.current.material.opacity, pulse * 0.6, 4, delta);
+      beamRefSecondary.current.material.opacity = THREE.MathUtils.damp(beamRefSecondary.current.material.opacity, pulse * 0.62, 4, delta);
     }
+
+    if (glowPanelRef.current) {
+      glowPanelRef.current.material.color.lerp(tint, dampFactor(4, delta));
+      glowPanelRef.current.material.opacity = THREE.MathUtils.damp(glowPanelRef.current.material.opacity, glowPulse, 4, delta);
+    }
+
+    glassRefs.current.forEach((mesh, index) => {
+      if (!mesh?.material) {
+        return;
+      }
+
+      mesh.material.color.lerp(tint, dampFactor(4, delta));
+      mesh.material.emissive.lerp(tint, dampFactor(4, delta));
+      mesh.material.opacity = THREE.MathUtils.damp(
+        mesh.material.opacity,
+        index < 2 ? 0.52 : 0.46,
+        5,
+        delta,
+      );
+    });
   });
 
   return (
     <group position={position} rotation={rotation}>
-      <RoomSurface args={[2.28, 3.04, 0.08]} position={[0, 0, 0.02]} color={frameColor} roughness={0.56} metalness={0.08} />
-      <RoomSurface args={[1.98, 2.74, 0.05]} position={[0, 0, 0.07]} color="#11151a" roughness={0.2} metalness={0.16} />
-      <mesh position={[0, 0, 0.11]} receiveShadow>
+      <RoomSurface args={[2.36, 3.12, 0.14]} position={[0, 0, 0.01]} color={frameColor} roughness={0.52} metalness={0.08} />
+      <RoomSurface args={[2.02, 2.78, 0.18]} position={[0, 0, 0.08]} color="#171c24" roughness={0.34} metalness={0.12} />
+
+      <RoomSurface args={[0.14, 2.92, 0.16]} position={[-1.02, 0, 0.12]} color={frameColor} roughness={0.38} metalness={0.1} />
+      <RoomSurface args={[0.14, 2.92, 0.16]} position={[1.02, 0, 0.12]} color={frameColor} roughness={0.38} metalness={0.1} />
+      <RoomSurface args={[1.9, 0.14, 0.16]} position={[0, 1.39, 0.12]} color={frameColor} roughness={0.38} metalness={0.1} />
+      <RoomSurface args={[1.9, 0.14, 0.16]} position={[0, -1.39, 0.12]} color={frameColor} roughness={0.38} metalness={0.1} />
+      <RoomSurface args={[2.12, 0.1, 0.34]} position={[0, -1.53, 0.18]} color={frameColor} roughness={0.46} metalness={0.08} />
+
+      <RoomSurface args={[0.08, 2.74, 0.12]} position={[0, -0.02, 0.14]} color={frameColor} roughness={0.34} metalness={0.1} />
+      <RoomSurface args={[1.82, 0.08, 0.12]} position={[0, -0.18, 0.14]} color={frameColor} roughness={0.34} metalness={0.1} />
+      <RoomSurface args={[1.82, 0.08, 0.12]} position={[0, 0.96, 0.14]} color={frameColor} roughness={0.34} metalness={0.1} />
+
+      <mesh ref={glowPanelRef} position={[0, 0, -0.02]}>
         <planeGeometry args={[1.78, 2.56]} />
-        <AnimatedStandardMaterial
-          color={tintColor}
-          emissiveColor={tintColor}
-          emissiveIntensity={glowStrength * 0.6}
-          roughness={0.08}
-          metalness={0.18}
-          transparent
-          opacity={0.56}
-        />
+        <meshBasicMaterial color={tintColor} transparent depthWrite={false} opacity={0.16} side={THREE.DoubleSide} />
       </mesh>
-      <RoomSurface args={[0.08, 2.54, 0.08]} position={[0, 0, 0.14]} color={frameColor} roughness={0.42} metalness={0.08} />
-      <RoomSurface args={[1.82, 0.08, 0.08]} position={[0, 0, 0.14]} color={frameColor} roughness={0.42} metalness={0.08} />
-      <mesh ref={beamRef} position={[0, -0.46, 0.86]} rotation={[-Math.PI / 4, 0, 0]}>
-        <planeGeometry args={[1.9, 3]} />
+
+      {paneConfigs.map((pane, index) => (
+        <mesh
+          key={pane.key}
+          ref={(node) => {
+            glassRefs.current[index] = node;
+          }}
+          position={pane.position}
+          receiveShadow
+        >
+          <planeGeometry args={pane.size} />
+          <meshStandardMaterial
+            color={tintColor}
+            emissive={tint}
+            emissiveIntensity={glowStrength * 0.54}
+            roughness={0.04}
+            metalness={0.18}
+            transparent
+            opacity={0.5}
+          />
+        </mesh>
+      ))}
+
+      <mesh position={[0, 0.22, 0.18]}>
+        <planeGeometry args={[1.68, 2.42]} />
+        <meshBasicMaterial color="#f5efe7" transparent opacity={0.06} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+
+      <mesh position={[0, 0.18, 0.19]}>
+        <planeGeometry args={[1.7, 2.44]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.05} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+
+      <mesh ref={beamRef} position={[0, -0.32, 0.9]} rotation={[-Math.PI / 4.2, 0, 0]}>
+        <planeGeometry args={[2.05, 3.16]} />
         <meshBasicMaterial color={tintColor} transparent depthWrite={false} opacity={0.12} side={THREE.DoubleSide} />
       </mesh>
-      <mesh ref={beamRefSecondary} position={[0, -0.16, 0.68]} rotation={[-Math.PI / 4.8, 0, 0]}>
-        <planeGeometry args={[1.28, 2.16]} />
+      <mesh ref={beamRefSecondary} position={[0, -0.08, 0.66]} rotation={[-Math.PI / 5.1, 0, 0]}>
+        <planeGeometry args={[1.42, 2.24]} />
         <meshBasicMaterial color={tintColor} transparent depthWrite={false} opacity={0.08} side={THREE.DoubleSide} />
       </mesh>
+
+      <pointLight position={[0, 0.24, 0.4]} intensity={glowStrength * 0.2} distance={2.4} color={tintColor} />
     </group>
   );
 }
@@ -433,20 +582,42 @@ function DustParticles({ count = 64, color = "#f8e8d9" }) {
   );
 }
 
-function ModelScene({ url, color }) {
+function ModelScene({ url, color, isBaseModel = false, modelAppearance = DEFAULT_MODEL_APPEARANCE }) {
   const { scene } = useGLTF(url);
   const cloned = useMemo(() => scene.clone(true), [scene]);
 
-  useMemo(() => {
+  useEffect(() => {
     cloned.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        cloneChildMaterials(child);
       }
     });
   }, [cloned]);
 
-  useMemo(() => {
+  useEffect(() => {
+    if (isBaseModel) {
+      const nextAppearance = { ...DEFAULT_MODEL_APPEARANCE, ...(modelAppearance ?? {}) };
+
+      cloned.traverse((child) => {
+        if (!child.isMesh || !child.material) {
+          return;
+        }
+
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => {
+          const appearanceKey = getBaseAppearanceKey(child.name, material?.name ?? "");
+          if (!appearanceKey) {
+            return;
+          }
+
+          applyAppearanceMaterial(material, appearanceKey, nextAppearance);
+        });
+      });
+      return;
+    }
+
     if (!color) {
       return;
     }
@@ -464,12 +635,25 @@ function ModelScene({ url, color }) {
         }
       });
     });
-  }, [cloned, color]);
+  }, [cloned, color, isBaseModel, modelAppearance]);
 
   return <primitive object={cloned} />;
 }
 
-function RoomDecor({ preset, trimColor, accentWallColor, floorColor, sceneProfile, roomCustomization, decorPlacements = {} }) {
+function RoomDecor({
+  preset,
+  trimColor,
+  accentWallColor,
+  floorColor,
+  sceneProfile,
+  roomCustomization,
+  decorPlacements = {},
+  decorEditMode = false,
+  selectedDecorItemId = null,
+  activeDecorItemId = null,
+  onDecorPlacementChange,
+  onActiveDecorItemChange,
+}) {
   const artImage = roomCustomization?.artImage;
   const artSet = preset === "sunlit-loft"
     ? ["#d9c5a3", "#c6d9d1", "#f1dbc0"]
@@ -495,21 +679,23 @@ function RoomDecor({ preset, trimColor, accentWallColor, floorColor, sceneProfil
       {preset === "townhouse-nook" && <ConsoleTable position={[0, -0.98, -3.66]} woodColor={trimColor} accentColor={accentWallColor} />}
 
       {/* User-placed decor items */}
-      <UserDecorItems decorPlacements={decorPlacements} trimColor={trimColor} accentWallColor={accentWallColor} floorColor={floorColor} sceneProfile={sceneProfile} />
+      <UserDecorItems
+        decorPlacements={decorPlacements}
+        trimColor={trimColor}
+        accentWallColor={accentWallColor}
+        floorColor={floorColor}
+        sceneProfile={sceneProfile}
+        decorEditMode={decorEditMode}
+        selectedDecorItemId={selectedDecorItemId}
+        activeDecorItemId={activeDecorItemId}
+        onDecorPlacementChange={onDecorPlacementChange}
+        onActiveDecorItemChange={onActiveDecorItemChange}
+      />
     </group>
   );
 }
 
 /* ── User-placed decor objects ──────────────────────────────────────────── */
-
-const SPOT_POSITIONS = {
-  "left-back":    [-3.6, -0.98, -3.2],
-  "center-back":  [0,    -0.98, -3.6],
-  "right-back":   [3.6,  -0.98, -3.2],
-  "left-front":   [-3.2, -0.98,  2.4],
-  "center-front": [0,    -0.98,  2.8],
-  "right-front":  [3.2,  -0.98,  2.4],
-};
 
 /* ── Material property lookup ───────────────────────────────────────────── */
 function matProps(material) {
@@ -714,45 +900,213 @@ function DecorRadio({ position, color, material }) {
   );
 }
 
-function UserDecorItems({ decorPlacements, trimColor, accentWallColor, floorColor, sceneProfile }) {
-  const entries = Object.entries(decorPlacements);
-  if (entries.length === 0) return null;
+function DecorSelectionHalo({ wall = false, color = "#7486ff" }) {
+  if (wall) {
+    return (
+      <mesh position={[0, 0, -0.08]}>
+        <planeGeometry args={[1.26, 1.6]} />
+        <meshBasicMaterial color={color} transparent opacity={0.16} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.42, 0.6, 48]} />
+      <meshBasicMaterial color={color} transparent opacity={0.28} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+function DecorPlacementSurface({ itemId, enabled, onPlace }) {
+  const wallPlacement = isWallDecorItem(itemId);
+
+  if (!enabled || !itemId) {
+    return null;
+  }
+
+  if (wallPlacement) {
+    return (
+      <mesh
+        position={[0, 1.72, -4.22]}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          onPlace?.(itemId, [event.point.x, event.point.y, -4.24]);
+        }}
+      >
+        <planeGeometry args={[7.2, 2.8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+    );
+  }
+
+  return (
+    <mesh
+      position={[0, -0.97, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onPlace?.(itemId, [event.point.x, -0.98, event.point.z]);
+      }}
+    >
+      <planeGeometry args={[9.2, 7.6]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+function DraggableDecorItem({ itemId, position, rotation = 0, scale = 1, selected, enabled, onMove, onSelect, children }) {
+  const draggingRef = useRef(false);
+  const draggedRef = useRef(false);
+  const plane = useMemo(() => {
+    if (isWallDecorItem(itemId)) {
+      return new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -4.24));
+    }
+
+    return new THREE.Plane().setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -0.98, 0));
+  }, [itemId]);
+  const intersectionPoint = useRef(new THREE.Vector3());
+
+  const handlePointerMove = useCallback((event) => {
+    if (!enabled || !draggingRef.current) {
+      return;
+    }
+
+    event.stopPropagation();
+    if (event.ray.intersectPlane(plane, intersectionPoint.current)) {
+      draggedRef.current = true;
+      onMove?.(itemId, clampDecorPosition(itemId, intersectionPoint.current.toArray()));
+    }
+  }, [enabled, itemId, onMove, plane]);
+
+  const handlePointerDown = useCallback((event) => {
+    if (!enabled) {
+      return;
+    }
+
+    event.stopPropagation();
+    draggedRef.current = false;
+    draggingRef.current = true;
+    onSelect?.(itemId);
+    event.target.setPointerCapture?.(event.pointerId);
+  }, [enabled, itemId, onSelect]);
+
+  const handlePointerUp = useCallback((event) => {
+    if (!enabled) {
+      return;
+    }
+
+    event.stopPropagation();
+    draggingRef.current = false;
+    if (!draggedRef.current) {
+      onSelect?.(itemId);
+    }
+    event.target.releasePointerCapture?.(event.pointerId);
+  }, [enabled, itemId, onSelect]);
+
+  return (
+    <group
+      position={position}
+      rotation={isWallDecorItem(itemId) ? [0, 0, THREE.MathUtils.degToRad(rotation)] : [0, THREE.MathUtils.degToRad(rotation), 0]}
+      scale={[scale, scale, scale]}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
+      {selected && <DecorSelectionHalo wall={isWallDecorItem(itemId)} color="#8aa0ff" />}
+      {children}
+    </group>
+  );
+}
+
+function UserDecorItems({
+  decorPlacements,
+  trimColor,
+  accentWallColor,
+  floorColor,
+  sceneProfile,
+  decorEditMode = false,
+  selectedDecorItemId = null,
+  activeDecorItemId = null,
+  onDecorPlacementChange,
+  onActiveDecorItemChange,
+}) {
+  const normalizedPlacements = useMemo(() => normalizeDecorPlacements(decorPlacements), [decorPlacements]);
+  const entries = Object.entries(normalizedPlacements);
+
+  const upsertPlacement = useCallback((itemId, rawPosition) => {
+    const next = {
+      ...normalizedPlacements,
+      [itemId]: createDecorPlacement(itemId, {
+        ...normalizedPlacements[itemId],
+        position: rawPosition,
+      }),
+    };
+
+    onDecorPlacementChange?.(next);
+    onActiveDecorItemChange?.(itemId);
+  }, [normalizedPlacements, onActiveDecorItemChange, onDecorPlacementChange]);
+
+  if (entries.length === 0 && !selectedDecorItemId) {
+    return null;
+  }
 
   return (
     <group>
+      <DecorPlacementSurface itemId={selectedDecorItemId} enabled={decorEditMode && Boolean(selectedDecorItemId)} onPlace={upsertPlacement} />
       {entries.map(([spotId, data]) => {
-        const pos = SPOT_POSITIONS[spotId];
-        if (!pos || !data) return null;
+        if (!data) return null;
 
         const itemId = typeof data === "string" ? data : data.item;
         const color = data.color ?? "#c9a87c";
         const material = data.material ?? "wood";
+        const pos = data.position ?? [0, -0.98, 0];
+        const rotation = data.rotation ?? 0;
+        const scale = data.scale ?? 1;
+        const isSelected = activeDecorItemId === itemId;
+
+        const wrapItem = (node) => (
+          <DraggableDecorItem
+            key={spotId}
+            itemId={itemId}
+            position={pos}
+            rotation={rotation}
+            scale={scale}
+            selected={isSelected}
+            enabled={decorEditMode}
+            onMove={upsertPlacement}
+            onSelect={onActiveDecorItemChange}
+          >
+            {node}
+          </DraggableDecorItem>
+        );
 
         switch (itemId) {
           case "tall-vase":
-            return <DecorVase key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorVase position={[0, 0, 0]} color={color} material={material} />);
           case "table-lamp":
-            return <DecorLamp key={spotId} position={pos} color={color} material={material} glowColor={sceneProfile.accentGlow} />;
+            return wrapItem(<DecorLamp position={[0, 0, 0]} color={color} material={material} glowColor={sceneProfile.accentGlow} />);
           case "armchair":
-            return <DecorChair key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorChair position={[0, 0, 0]} color={color} material={material} />);
           case "wall-art":
-            return <WallFrame key={spotId} position={[pos[0], 1.68, pos[2] < 0 ? -4.34 : pos[2]]} frameColor={color} artColor="#b7c8d9" glowColor={sceneProfile.accentGlow} />;
+            return wrapItem(<WallFrame position={[0, 0, 0]} frameColor={color} artColor="#b7c8d9" glowColor={sceneProfile.accentGlow} />);
           case "plant":
-            return <Planter key={spotId} position={pos} potColor={color} leafColor={accentWallColor} />;
+            return wrapItem(<Planter position={[0, 0, 0]} potColor={color} leafColor={accentWallColor} />);
           case "coffee-table":
-            return <DecorCoffeeTable key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorCoffeeTable position={[0, 0, 0]} color={color} material={material} />);
           case "bookshelf":
-            return <DecorBookshelf key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorBookshelf position={[0, 0, 0]} color={color} material={material} />);
           case "candelabra":
-            return <DecorCandelabra key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorCandelabra position={[0, 0, 0]} color={color} material={material} />);
           case "sculpture":
-            return <DecorSculpture key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorSculpture position={[0, 0, 0]} color={color} material={material} />);
           case "rug":
-            return <DecorRug key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorRug position={[0, 0, 0]} color={color} material={material} />);
           case "floor-cushion":
-            return <DecorCushion key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorCushion position={[0, 0, 0]} color={color} material={material} />);
           case "jazz-radio":
-            return <DecorRadio key={spotId} position={pos} color={color} material={material} />;
+            return wrapItem(<DecorRadio position={[0, 0, 0]} color={color} material={material} />);
           default:
             return null;
         }
@@ -761,7 +1115,16 @@ function UserDecorItems({ decorPlacements, trimColor, accentWallColor, floorColo
   );
 }
 
-function InteriorShell({ roomCustomization, sceneProfile, decorPlacements }) {
+function InteriorShell({
+  roomCustomization,
+  sceneProfile,
+  decorPlacements,
+  decorEditMode,
+  selectedDecorItemId,
+  activeDecorItemId,
+  onDecorPlacementChange,
+  onActiveDecorItemChange,
+}) {
   const wallColor = roomCustomization.wallColor;
   const accentWallColor = roomCustomization.accentWallColor;
   const trimColor = roomCustomization.trimColor;
@@ -804,6 +1167,11 @@ function InteriorShell({ roomCustomization, sceneProfile, decorPlacements }) {
         sceneProfile={sceneProfile}
         roomCustomization={roomCustomization}
         decorPlacements={decorPlacements}
+        decorEditMode={decorEditMode}
+        selectedDecorItemId={selectedDecorItemId}
+        activeDecorItemId={activeDecorItemId}
+        onDecorPlacementChange={onDecorPlacementChange}
+        onActiveDecorItemChange={onActiveDecorItemChange}
       />
     </group>
   );
@@ -813,24 +1181,27 @@ export default function Scene({
   items = [],
   baseModelUrl = "/models/female_anatomy.glb",
   colors = {},
+  modelAppearance = DEFAULT_MODEL_APPEARANCE,
+  modelFocusTarget = null,
   autoRotate = false,
   focusMode = false,
   canvasRef,
   activeItem,
-  initialCatalogItems = [],
-  showBaseModel = true,
+  availableItems = [],
   enableFocusMode = true,
   scenePreset = "gallery-day",
   roomCustomization = DEFAULT_ROOM_CUSTOMIZATION,
   decorPlacements = {},
+  decorEditMode = false,
+  selectedDecorItemId = null,
+  activeDecorItemId = null,
+  onDecorPlacementChange,
+  onActiveDecorItemChange,
 }) {
   const sceneProfile = getSceneProfile(scenePreset);
   const cameraPosition = [0.22, 1.15, 3.65];
 
-  const renderItems = useMemo(() => {
-    if (!showBaseModel) return items;
-    return [{ id: "base", url: baseModelUrl }, ...items];
-  }, [baseModelUrl, items, showBaseModel]);
+  const renderItems = useMemo(() => [{ id: "base", url: baseModelUrl }, ...items], [baseModelUrl, items]);
 
   return (
     <div
@@ -857,7 +1228,8 @@ export default function Scene({
         <CameraController
           focusMode={enableFocusMode ? focusMode : false}
           activeItem={activeItem}
-          itemsData={initialCatalogItems}
+          itemsData={availableItems}
+          modelFocusTarget={modelFocusTarget}
         />
 
         <fog attach="fog" args={[sceneProfile.fogColor, 6, 22]} />
@@ -893,7 +1265,16 @@ export default function Scene({
 
         <Suspense fallback={null}>
           <Environment preset={sceneProfile.env} background={false} environmentIntensity={sceneProfile.envIntensity} />
-          <InteriorShell roomCustomization={roomCustomization} sceneProfile={sceneProfile} decorPlacements={decorPlacements} />
+          <InteriorShell
+            roomCustomization={roomCustomization}
+            sceneProfile={sceneProfile}
+            decorPlacements={decorPlacements}
+            decorEditMode={decorEditMode}
+            selectedDecorItemId={selectedDecorItemId}
+            activeDecorItemId={activeDecorItemId}
+            onDecorPlacementChange={onDecorPlacementChange}
+            onActiveDecorItemChange={onActiveDecorItemChange}
+          />
           <ContactShadows
             position={[0, -0.99, 0]}
             opacity={sceneProfile.shadowOpacity}
@@ -907,7 +1288,13 @@ export default function Scene({
 
           <group position={[0, -0.92, 0]}>
             {renderItems.map(({ id, url }) => (
-              <ModelScene key={id} url={url} color={colors[id]} />
+              <ModelScene
+                key={id}
+                url={url}
+                color={colors[id]}
+                isBaseModel={id === "base"}
+                modelAppearance={modelAppearance}
+              />
             ))}
           </group>
         </Suspense>

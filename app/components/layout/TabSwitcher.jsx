@@ -1,6 +1,6 @@
 "use client";
 import React, { useMemo, useRef, useState } from "react";
-import { Home, Library, Moon, Paintbrush, Palette, PanelLeft, PanelLeftClose, Sparkles, Sun } from "lucide-react";
+import { Flower2, Home, Moon, Paintbrush, Palette, PanelLeft, PanelLeftClose, Sparkles, Sun } from "lucide-react";
 import ColorPicker from "../ui/ColorPicker";
 import { hexToRgba, isValidHexColor, normalizeHex } from "../ui/wardrobeUtils";
 
@@ -36,13 +36,18 @@ function CircleTooltip({ label, light }) {
       whiteSpace: "nowrap",
       fontSize: "11px",
       fontWeight: 600,
-      color: light ? "#0f172a" : "#e2e8f0",
-      padding: "3px 9px",
-      borderRadius: "8px",
-      background: light ? "rgba(255,255,255,0.93)" : "rgba(8,8,14,0.88)",
-      backdropFilter: "blur(10px)",
-      border: light ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.08)",
-      boxShadow: light ? "0 4px 14px rgba(0,0,0,0.12)" : "0 4px 14px rgba(0,0,0,0.45)",
+      letterSpacing: "0.03em",
+      color: light ? "#10253a" : "rgba(241,245,249,0.94)",
+      padding: "8px 12px",
+      borderRadius: "14px",
+      background: light
+        ? "linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.64))"
+        : "linear-gradient(180deg, rgba(15,18,28,0.84), rgba(7,10,16,0.72))",
+      backdropFilter: "blur(16px) saturate(1.08)",
+      border: light ? "1px solid rgba(255,255,255,0.72)" : "1px solid rgba(255,255,255,0.12)",
+      boxShadow: light
+        ? "0 10px 26px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.68)"
+        : "0 14px 30px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08)",
       pointerEvents: "none",
       zIndex: 100,
     }}>
@@ -54,6 +59,8 @@ function CircleTooltip({ label, light }) {
 export default function TabSwitcher({
   activeTab,
   onTabChange,
+  activeOutfitPanel = "outfit",
+  onOutfitPanelChange,
   panelCollapsed,
   onTogglePanel,
   activeItem,
@@ -70,7 +77,7 @@ export default function TabSwitcher({
   const containerLeft = panelCollapsed ? "24px" : `calc(${PANEL_WIDTH} + 20px)`;
   const navItems = useMemo(() => ([
     { id: "outfit", icon: Paintbrush, label: "Outfit" },
-    { id: "catalog", icon: Library, label: "Catalog" },
+    { id: "decor", icon: Flower2, label: "Décor" },
     { id: "room", icon: Home, label: "Atelier" },
   ]), []);
 
@@ -93,7 +100,7 @@ export default function TabSwitcher({
   });
   const paletteButtonRef = useRef(null);
 
-  const paletteVisible = !panelCollapsed && activeTab === "outfit" && !!activeItem;
+  const paletteVisible = !panelCollapsed && activeTab === "outfit" && activeOutfitPanel === "outfit" && !!activeItem;
   const visiblePaletteOpen = paletteVisible && paletteOpen;
   const hidingNav = visiblePaletteOpen;
   const showFocusButton = activeTab === "outfit" && !visiblePaletteOpen;
@@ -212,7 +219,7 @@ export default function TabSwitcher({
         textTransform: "uppercase",
         whiteSpace: "nowrap",
       }}>
-        {navItems.find((item) => item.id === activeTab)?.label ?? "Outfit"} Panel
+        {activeTab === "outfit" && activeOutfitPanel === "beauty" ? "Beauty" : navItems.find((item) => item.id === activeTab)?.label ?? "Outfit"} Panel
       </div>
 
       <div
@@ -413,6 +420,7 @@ export default function TabSwitcher({
       {navItems.map(({ id, icon: Icon, label }, itemIndex) => {
         const delay = hidingNav ? `${itemIndex * 40}ms` : `${80 + itemIndex * 40}ms`;
         const isActive = activeTab === id;
+        const isOutfitButton = id === "outfit";
 
         return (
         <div
@@ -428,9 +436,74 @@ export default function TabSwitcher({
           onMouseEnter={() => setHoveredId(id)}
           onMouseLeave={() => setHoveredId(null)}
         >
-          <button onClick={() => onTabChange(id)} style={navButtonStyle(isActive)}>
+          <button
+            onClick={() => {
+              onTabChange(id);
+              if (isOutfitButton) {
+                onOutfitPanelChange?.("outfit");
+              }
+            }}
+            style={navButtonStyle(isActive)}
+          >
             <Icon size={22} strokeWidth={1.75} />
           </button>
+          {isOutfitButton && activeTab === "outfit" && (
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "calc(100% - 6px)",
+                transform: "translateY(-50%)",
+                zIndex: 2,
+              }}
+              onMouseEnter={() => setHoveredId("beauty")}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onTabChange("outfit");
+                  onOutfitPanelChange?.("beauty");
+                }}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  minWidth: "40px",
+                  minHeight: "40px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  cursor: "pointer",
+                  border: isDayMode
+                    ? `2px solid ${activeOutfitPanel === "beauty" ? activeAccentBorder : "rgba(15,23,42,0.12)"}`
+                    : `2px solid ${activeOutfitPanel === "beauty" ? activeAccentBorder : "rgba(255,255,255,0.12)"}`,
+                  background: isDayMode
+                    ? activeOutfitPanel === "beauty"
+                      ? `linear-gradient(135deg, ${activeAccentWash} 0%, ${activeAccentSoft} 100%)`
+                      : "rgba(255,255,255,0.74)"
+                    : activeOutfitPanel === "beauty"
+                      ? `linear-gradient(135deg, ${hexToRgba(accent, 0.34)} 0%, ${hexToRgba(accent, 0.12)} 100%)`
+                      : "rgba(255,255,255,0.05)",
+                  color: isDayMode
+                    ? activeOutfitPanel === "beauty" ? "#10253a" : "rgba(15,23,42,0.62)"
+                    : activeOutfitPanel === "beauty" ? "#eef2ff" : "rgba(255,255,255,0.72)",
+                  backdropFilter: "blur(10px)",
+                  boxShadow: activeOutfitPanel === "beauty"
+                    ? `0 0 18px ${hexToRgba(accent, 0.22)}`
+                    : isDayMode
+                      ? "0 2px 8px rgba(0,0,0,0.08)"
+                      : "0 2px 8px rgba(0,0,0,0.2)",
+                  transition: "all 220ms ease",
+                }}
+                title="Beauty Center"
+              >
+                <Palette size={16} strokeWidth={1.8} />
+              </button>
+              {hoveredId === "beauty" && <CircleTooltip light={isDayMode} label="Beauty Center" />}
+            </div>
+          )}
           {isActive && (
             <span style={{
               position: "absolute",

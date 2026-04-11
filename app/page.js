@@ -1,8 +1,8 @@
 import PageClient from "./PageClient";
-import { listWardrobeItemsFromDisk } from "./utils/wardrobeCatalogServer";
+import { listWardrobeItemsFromDisk } from "./utils/wardrobeItemsServer";
 
 export default async function Page() {
-  const initialCatalogItems = await listWardrobeItemsFromDisk();
+  const initialItems = await listWardrobeItemsFromDisk();
 
-  return <PageClient initialCatalogItems={initialCatalogItems} />;
+  return <PageClient initialItems={initialItems} />;
 }

@@ -1,7 +1,9 @@
 "use client";
 import React from "react";
+import BeautyPanel from "../ui/BeautyPanel";
 import WardrobePanel from "../ui/WardrobePanel";
 import WardrobeRoomPanel from "../ui/WardrobeRoomPanel";
+import DecorPanel from "../ui/DecorPanel";
 
 const PANEL_WIDTH = "clamp(320px, 34vw, 420px)";
 
@@ -13,28 +15,31 @@ export default function Sidebar({
   activeItem,
   setActiveItem,
   activeTab,
-  category,
-  search,
-  equippedOnly,
-  favoritesOnly,
-  topsOnly,
-  recentlyImportedOnly,
-  colorFamily,
+  activeOutfitPanel,
   panelCollapsed,
-  onCategoryChange,
   advancedActions,
   roomCustomization,
   onRoomCustomizationChange,
-  onApplyRoomPreset,
+  modelAppearance,
+  onModelAppearanceChange,
+  onResetModelAppearance,
+  onModelFocusTargetChange,
   scenePreset,
   onScenePresetChange,
-  onCatalogPreviewReady,
+  decorPlacements,
+  onDecorPlacementChange,
+  selectedDecorItemId,
+  onSelectedDecorItemChange,
+  activeDecorItemId,
+  onActiveDecorItemChange,
 }) {
   const isRoomPanel = activeTab === "room";
+  const isDecorPanel = activeTab === "decor";
+  const isBeautyPanel = activeTab === "outfit" && activeOutfitPanel === "beauty";
 
   return (
     <aside
-      className={`sidebar-shell ${isRoomPanel ? "sidebar-shell--room" : "sidebar-shell--wardrobe"}`}
+      className={`sidebar-shell ${isDecorPanel ? "sidebar-shell--decor" : isRoomPanel ? "sidebar-shell--room" : "sidebar-shell--wardrobe"}`}
       style={{
         position: "absolute",
         top: 0,
@@ -52,13 +57,39 @@ export default function Sidebar({
       }}
     >
       <div className="sidebar-shell__halo" />
-      {isRoomPanel ? (
+      {isDecorPanel ? (
+        <DecorPanel
+          roomCustomization={roomCustomization}
+          onRoomCustomizationChange={onRoomCustomizationChange}
+          decorPlacements={decorPlacements}
+          onDecorPlacementChange={onDecorPlacementChange}
+          selectedDecorItemId={selectedDecorItemId}
+          onSelectedDecorItemChange={onSelectedDecorItemChange}
+          activeDecorItemId={activeDecorItemId}
+          onActiveDecorItemChange={onActiveDecorItemChange}
+        />
+      ) : isRoomPanel ? (
         <WardrobeRoomPanel
           roomCustomization={roomCustomization}
           onRoomCustomizationChange={onRoomCustomizationChange}
-          onApplyRoomPreset={onApplyRoomPreset}
           scenePreset={scenePreset}
           onScenePresetChange={onScenePresetChange}
+          occasionPresets={advancedActions?.occasionPresets}
+          activeOccasionId={advancedActions?.activeOccasionId}
+          onApplyOccasionSuggestion={advancedActions?.applyOccasionSuggestion}
+          savedScenes={advancedActions?.savedScenes}
+          onSaveScene={advancedActions?.saveSceneToLookbook}
+          onLoadScene={advancedActions?.loadSceneFromLookbook}
+          onDeleteScene={advancedActions?.deleteSceneFromLookbook}
+        />
+      ) : isBeautyPanel ? (
+        <BeautyPanel
+          roomCustomization={roomCustomization}
+          modelAppearance={modelAppearance}
+          onModelAppearanceChange={onModelAppearanceChange}
+          onResetModelAppearance={onResetModelAppearance}
+          onModelFocusTargetChange={onModelFocusTargetChange}
+          scenePreset={scenePreset}
         />
       ) : (
         <WardrobePanel
@@ -68,22 +99,14 @@ export default function Sidebar({
           unequip={unequip}
           activeItem={activeItem}
           setActiveItem={setActiveItem}
-          activeTab={activeTab}
-          category={category}
-          search={search}
-          equippedOnly={equippedOnly}
-          favoritesOnly={favoritesOnly}
-          topsOnly={topsOnly}
-          recentlyImportedOnly={recentlyImportedOnly}
-          colorFamily={colorFamily}
-          onCategoryChange={onCategoryChange}
           advancedActions={advancedActions}
           roomCustomization={roomCustomization}
           onRoomCustomizationChange={onRoomCustomizationChange}
-          onApplyRoomPreset={onApplyRoomPreset}
+          modelAppearance={modelAppearance}
+          onModelAppearanceChange={onModelAppearanceChange}
+          onResetModelAppearance={onResetModelAppearance}
           scenePreset={scenePreset}
           onScenePresetChange={onScenePresetChange}
-          onCatalogPreviewReady={onCatalogPreviewReady}
         />
       )}
     </aside>

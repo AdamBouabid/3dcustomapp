@@ -1,16 +1,20 @@
 "use client";
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 
-export function useWardrobe() {
-  const [wardrobe, setWardrobe] = useState({});
-  const [activeItem, setActiveItem] = useState(null);
-  const [colors, setColors] = useState({
-    shirt: "#a5b4fc",
-    skirt: "#f9a8d4",
-    dress: "#fcd34d",
-    heels: "#5eead4",
-  });
-  const orbitRef = useRef();
+const DEFAULT_COLORS = {
+  shirt: "#a5b4fc",
+  skirt: "#f9a8d4",
+  dress: "#fcd34d",
+  heels: "#5eead4",
+};
+
+export function useWardrobe(initialState = {}) {
+  const [wardrobe, setWardrobe] = useState(() => initialState.wardrobe ?? {});
+  const [activeItem, setActiveItem] = useState(() => initialState.activeItem ?? null);
+  const [colors, setColors] = useState(() => ({
+    ...DEFAULT_COLORS,
+    ...(initialState.colors ?? {}),
+  }));
 
   const equip = useCallback((id, url) => {
     setWardrobe((prev) => ({ ...prev, [id]: url }));
@@ -36,7 +40,6 @@ export function useWardrobe() {
     colors,
     setColors,
     setColor,
-    orbitRef,
     equip,
     unequip,
   };

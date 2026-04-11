@@ -1,12 +1,9 @@
 "use client";
 import React from "react";
-import { Home, Palette, PanelLeft, Sparkles, Sun } from "lucide-react";
+import { Home, Palette, Sparkles, Sun } from "lucide-react";
 import ColorPicker from "./ColorPicker";
 import {
-  ACCENT_SWATCHES,
-  PANEL_THEME_OPTIONS,
   ROOM_COLOR_SWATCHES,
-  ROOM_PRESET_OPTIONS,
   SCENE_MOOD_OPTIONS,
 } from "./roomCustomizationConfig";
 import { hexToRgba, isValidHexColor, normalizeHex } from "./wardrobeUtils";
@@ -30,8 +27,8 @@ function swatchButtonStyle(color, isActive, accent) {
   return {
     background: color,
     boxShadow: isActive
-      ? `0 0 0 3px ${hexToRgba(accent, 0.28)}, 0 8px 16px rgba(0,0,0,0.24)`
-      : "0 6px 14px rgba(0,0,0,0.2)",
+      ? `0 0 0 3px rgba(255,255,255,0.92), 0 0 0 7px ${hexToRgba(accent, 0.28)}, 0 12px 24px rgba(0,0,0,0.24)`
+      : "0 8px 18px rgba(0,0,0,0.22)",
   };
 }
 
@@ -82,7 +79,6 @@ function ColorField({ fieldKey, value, accentColor, onUpdateRoomCustomization })
 export default function WardrobeCustomizationSection({
   roomCustomization,
   onUpdateRoomCustomization,
-  onApplyRoomPreset,
   scenePreset,
   onScenePresetChange,
 }) {
@@ -113,32 +109,6 @@ export default function WardrobeCustomizationSection({
           <span className="wardrobe-panel-header-chip"><Sun size={12} /> {scenePreset.replace("gallery-", " ")}</span>
           <span className="wardrobe-panel-header-chip"><Palette size={12} /> {accentColor}</span>
         </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        {ROOM_PRESET_OPTIONS.map((preset, index) => {
-          const isActive = roomCustomization?.preset === preset.id;
-          return (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => onApplyRoomPreset?.(preset.id)}
-              className={`wardrobe-interior-card text-left ${isActive ? "wardrobe-interior-card--active" : ""}`}
-              style={{
-                animationDelay: `${index * 70}ms`,
-                borderColor: isActive ? hexToRgba(roomCustomization?.panelAccent ?? accentColor, 0.34) : undefined,
-              }}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-white/78">
-                  <Home size={16} />
-                </span>
-                <span className="text-[10px] uppercase tracking-[0.14em] text-white/38">Preset</span>
-              </div>
-              <p className="mt-3 text-[13px] font-semibold text-white/86">{preset.label}</p>
-            </button>
-          );
-        })}
       </div>
 
       <div className="wardrobe-interior-card flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-3.5 backdrop-blur-md">
@@ -231,56 +201,6 @@ export default function WardrobeCustomizationSection({
         </div>
 
         <div className="wardrobe-interior-card flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-3.5 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <PanelLeft size={14} className="text-white/70" />
-            <p className="text-[12px] font-semibold text-white/84">Side panel look</p>
-          </div>
-
-          <div className="wardrobe-theme-grid">
-            {PANEL_THEME_OPTIONS.map((theme) => {
-              const isActive = roomCustomization?.panelTheme === theme.id;
-              return (
-                <button
-                  key={theme.id}
-                  type="button"
-                  onClick={() => onUpdateRoomCustomization?.({ panelTheme: theme.id })}
-                  className={`wardrobe-theme-tile ${isActive ? "wardrobe-theme-tile--active" : ""} ${
-                    isActive ? "text-white shadow-[0_10px_24px_rgba(0,0,0,0.16)]" : "text-white/72 hover:bg-white/[0.055]"
-                  }`}
-                  style={{
-                    borderColor: isActive ? hexToRgba(accentColor, 0.34) : "rgba(255,255,255,0.08)",
-                    backgroundImage: `radial-gradient(circle at 20% 20%, ${theme.overlayA}, transparent 45%), linear-gradient(135deg, ${theme.surfaceStart}, ${theme.surfaceEnd})`,
-                  }}
-                >
-                  <span className="wardrobe-theme-tile__dot" style={{ background: `linear-gradient(135deg, ${theme.overlayA}, ${theme.overlayB})` }} />
-                  <p className="text-[11px] font-semibold leading-4">{theme.label}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Palette size={13} className="text-white/70" />
-              <span className="text-[11px] font-semibold text-white/72">Accent tone</span>
-            </div>
-            <div className="wardrobe-accent-grid">
-              {ACCENT_SWATCHES.map((swatch) => {
-                const isActive = normalizeHex(swatch.hex).toLowerCase() === accentColor.toLowerCase();
-                return (
-                  <button
-                    key={swatch.id}
-                    type="button"
-                    onClick={() => onUpdateRoomCustomization?.({ panelAccent: swatch.hex })}
-                    className={`wardrobe-swatch wardrobe-swatch--compact ${isActive ? "wardrobe-swatch--active" : ""}`}
-                    style={swatchButtonStyle(swatch.hex, isActive, accentColor)}
-                    title={swatch.label}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
           <div className="mt-4 rounded-[0.85rem] border border-white/10 bg-black/10 p-3 transition-transform duration-300 hover:-translate-y-[2px]">
             <div className="mb-2 flex items-center gap-2">
               <Sun size={12} className="text-white/70" />

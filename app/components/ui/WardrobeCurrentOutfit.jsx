@@ -10,7 +10,6 @@ const ICON_MAP = {
   Sparkles,
   Crown,
   Footprints,
-  // legacy / fallback aliases
   Wind: Layers,
   PersonStanding: Sparkles,
 };
@@ -39,6 +38,7 @@ export default function WardrobeCurrentOutfit({
   return (
     <section className="mt-3 px-1 pb-1">
       <p className="font-kicker mb-2.5 px-1 text-[10px] tracking-[0.12em] text-white/40">Current outfit</p>
+
       <div className="wardrobe-motion-list flex flex-col gap-2 px-1">
         {items.map(({ id, label, url, icon, accent }, index) => {
           const Icon = ICON_MAP[icon] ?? Shirt;
@@ -123,7 +123,7 @@ export default function WardrobeCurrentOutfit({
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEquipWithFeedback(id, url); }}
-                      className="flex h-7 w-7 items-center justify-center rounded-[0.7rem] border border-white/8 bg-white/[0.04] text-white/45 transition-all"
+                      className={`flex h-7 w-7 items-center justify-center rounded-[0.7rem] border border-white/8 bg-white/[0.04] text-white/45 transition-all ${justEquipped === id ? "wardrobe-action-pulse" : ""}`}
                       style={{ borderColor: hexToRgba(panelAccent, 0.14) }}
                       title={`Equip ${label}`}
                     >

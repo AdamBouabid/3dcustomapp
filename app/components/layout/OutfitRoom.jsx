@@ -7,7 +7,7 @@ import TabSwitcher from "./TabSwitcher";
 const Scene = dynamic(() => import("../scene/Scene"), { ssr: false });
 
 export default function OutfitRoom({
-  initialCatalogItems,
+  initialItems,
   wardrobe,
   equip,
   unequip,
@@ -19,42 +19,43 @@ export default function OutfitRoom({
   createSnapshotData,
   activeTab,
   setActiveTab,
-  category,
-  search,
-  equippedOnly,
-  favoritesOnly,
-  topsOnly,
-  recentlyImportedOnly,
-  colorFamily,
+  activeOutfitPanel,
+  setActiveOutfitPanel,
   panelCollapsed,
   setPanelCollapsed,
   equippedItems,
   canvasRef,
   focusMode,
   setFocusMode,
-  onCategoryChange,
   scenePreset,
   setScenePreset,
   advancedActions,
   roomCustomization,
   onRoomCustomizationChange,
-  onApplyRoomPreset,
-  onCatalogPreviewReady,
+  modelAppearance,
+  onModelAppearanceChange,
+  onResetModelAppearance,
+  modelFocusTarget,
+  onModelFocusTargetChange,
+  decorPlacements,
+  onDecorPlacementChange,
+  selectedDecorItemId,
+  onSelectedDecorItemChange,
+  activeDecorItemId,
+  onActiveDecorItemChange,
 }) {
-  const sceneItems = useMemo(() => {
-    if (activeTab === "catalog") {
-      const selectedCatalogItem = initialCatalogItems.find((item) => item.id === activeItem);
-      return selectedCatalogItem ? [{ id: selectedCatalogItem.id, url: selectedCatalogItem.url }] : [];
-    }
-
-    return equippedItems;
-  }, [activeItem, activeTab, equippedItems, initialCatalogItems]);
+  const sceneItems = useMemo(() => equippedItems, [equippedItems]);
 
   return (
-    <div style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}>
+    <div
+      className={activeTab === "decor" && selectedDecorItemId ? "scene-stage scene-stage--placement" : "scene-stage"}
+      style={{ position: "relative", height: "100%", width: "100%", overflow: "hidden" }}
+    >
       <TabSwitcher
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        activeOutfitPanel={activeOutfitPanel}
+        onOutfitPanelChange={setActiveOutfitPanel}
         panelCollapsed={panelCollapsed}
         onTogglePanel={() => setPanelCollapsed((v) => !v)}
         activeItem={activeItem}
@@ -67,7 +68,7 @@ export default function OutfitRoom({
         accentColor={roomCustomization?.panelAccent}
       />
       <Sidebar
-        items={initialCatalogItems}
+        items={initialItems}
         wardrobe={wardrobe}
         equip={equip}
         unequip={unequip}
@@ -78,41 +79,61 @@ export default function OutfitRoom({
         onLoadOutfit={onLoadOutfit}
         createSnapshotData={createSnapshotData}
         activeTab={activeTab}
-        category={category}
-        search={search}
-        equippedOnly={equippedOnly}
-        favoritesOnly={favoritesOnly}
-        topsOnly={topsOnly}
-        recentlyImportedOnly={recentlyImportedOnly}
-        colorFamily={colorFamily}
+        activeOutfitPanel={activeOutfitPanel}
         panelCollapsed={panelCollapsed}
-        onCategoryChange={onCategoryChange}
         advancedActions={advancedActions}
         roomCustomization={roomCustomization}
         onRoomCustomizationChange={onRoomCustomizationChange}
-        onApplyRoomPreset={onApplyRoomPreset}
+        modelAppearance={modelAppearance}
+        onModelAppearanceChange={onModelAppearanceChange}
+        onResetModelAppearance={onResetModelAppearance}
+        onModelFocusTargetChange={onModelFocusTargetChange}
         scenePreset={scenePreset}
         onScenePresetChange={setScenePreset}
-        onCatalogPreviewReady={onCatalogPreviewReady}
+        decorPlacements={decorPlacements}
+        onDecorPlacementChange={onDecorPlacementChange}
+        selectedDecorItemId={selectedDecorItemId}
+        onSelectedDecorItemChange={onSelectedDecorItemChange}
+        activeDecorItemId={activeDecorItemId}
+        onActiveDecorItemChange={onActiveDecorItemChange}
       />
 
       {/* Scene fills the entire container — sidebar floats on top */}
       <div style={{ position: "absolute", inset: 0 }}>
         <Scene
           items={sceneItems}
-          initialCatalogItems={initialCatalogItems}
+          availableItems={initialItems}
           activeItem={activeItem}
           colors={colors}
           canvasRef={canvasRef}
           autoRotate={false}
           environment="city"
           focusMode={focusMode}
-          showBaseModel={activeTab !== "catalog"}
           enableFocusMode={activeTab === "outfit"}
           scenePreset={scenePreset}
           roomCustomization={roomCustomization}
+          modelAppearance={modelAppearance}
+          modelFocusTarget={modelFocusTarget}
+          decorPlacements={decorPlacements}
+          decorEditMode={activeTab === "decor"}
+          selectedDecorItemId={selectedDecorItemId}
+          activeDecorItemId={activeDecorItemId}
+          onDecorPlacementChange={onDecorPlacementChange}
+          onActiveDecorItemChange={onActiveDecorItemChange}
         />
       </div>
+
+      {activeTab === "decor" && (
+        <div className="scene-decor-hint">
+          <span className="scene-decor-hint__eyebrow">3D Placement</span>
+          <strong className="scene-decor-hint__title">
+            {selectedDecorItemId ? "Place or drag the selected decor in the room" : "Select a decor piece, then place it directly in the room"}
+          </strong>
+          <span className="scene-decor-hint__copy">
+            Drag placed objects to reposition them. Wall art snaps to the back wall; everything else rides the floor.
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import React from "react";
 
 const TAB_LABELS = {
   outfit: "Current styling",
-  catalog: "Wardrobe catalog",
   room: "Interior atelier",
 };
 
